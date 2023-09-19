@@ -197,13 +197,11 @@ cross_entropy (z: &Array2<f64>, y: &Array2<f64>) -> f64
 }
 
 pub fn 
-get_embedding (model: &Model, token: &str, token_to_index: &HashMap<String, usize>) -> Option<Array2<f64>> 
+get_embedding (model: &Model, token: &str, token_to_index: &HashMap<String, usize>) -> Option<Vec<f64>> 
 {
   match token_to_index.get(token) {
     Some(indx) => {
-      Some(
-        forward_propagation(model, &encode(*indx, token_to_index.len())).0
-      )
+      Some(model.w1.row(*indx).to_owned().into_raw_vec())
     },
 
     None => None

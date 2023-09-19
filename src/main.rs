@@ -3,11 +3,13 @@ use std::{fs, io::Read};
 use ndarray::{Array, Array1, Array2, ArrayView, Axis, Ix2};
 use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::Uniform;
+use ordered_float::OrderedFloat;
 use rand::distributions::Standard;
 use rand::prelude::*;
 use rand::{thread_rng, Rng};
 use regex::Regex;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::cmp::Reverse;
 use std::ops::{Mul, Sub, SubAssign};
 use word2vec_rs::*;
 
@@ -22,8 +24,14 @@ const WINDOW_SIZE: i32 = 3;
 const LEARNING_RATE: f64 = 0.0003;
 
 fn
-run (epochs: usize, print_entropy: bool, query: Option<&str>, model_path: Option<&String>, text: &str) 
-{
+run (
+  epochs: usize, 
+  print_entropy: bool, 
+  query: Option<&str>, 
+  model_path: Option<&String>, 
+  save: bool, 
+  text: &str
+) {
   let metadata = Metadata::init(text);
 
   let mut model = Model::new(metadata.vocab_size, EMBEDDINGS_SIZE);
@@ -39,35 +47,38 @@ run (epochs: usize, print_entropy: bool, query: Option<&str>, model_path: Option
   
   println!("model trained");
 
-  match model.save_to_file("./model.out") {
-    Err(error) => println!("error: {}", error),
-    _ => ()
+  if save {
+    match model.save_to_file("./model.out") {
+      Err(error) => println!("error: {}", error),
+      _ => ()
+    }
   }
 
   match query {
     Some(q) => {
-        predict(q, &model, &metadata.token_to_index, &metadata.index_to_token, metadata.vocab_size)
+        nn_forward_propagation(q, &model, &metadata.token_to_index, &metadata.index_to_token, metadata.vocab_size);
+        
+        let mut word_embeddings: HashMap<String, Vec<f64>> = HashMap::new();
+        for entry in metadata.token_to_index.iter() {
+          word_embeddings.insert(
+            entry.0.clone(), 
+            get_embedding(&model, entry.0, &metadata.token_to_index).unwrap()
+          );
+        }
+
+        closest_embeddings (&word_embeddings, q);
+
+        match word_analogy(&word_embeddings, q, "oakland", "clara") {
+          Some(analogy) => println!("best word analogy: {}", analogy),
+          _ => println!("could not find an analogy for {}", ""),
+        }
     },
     _ => ()
-  }
-
-  println!("query done");
-
-  let mut word_embeddings: HashMap<String, Vec<f64>> = HashMap::new();
-  for entry in metadata.token_to_index.iter() {
-    let embedding_matrix = get_embedding(&model, entry.0, &metadata.token_to_index).unwrap();
-    let v = embedding_matrix.into_raw_vec();
-    word_embeddings.insert(entry.0.clone(), v);
-  }
-
-  match word_analogy(&word_embeddings, "alameda", "oakland", "jose") {
-    Some(analogy) => println!("best word analogy: {}", analogy),
-    _ => println!("could not find an analogy for {}", ""),
   }
 }
 
 fn
-predict (
+nn_forward_propagation (
   query: &str,
   model: &Model, 
   token_to_index: &HashMap<String, usize>,
@@ -86,22 +97,43 @@ predict (
   indices.sort_by(|&a, &b| probabilities[b].partial_cmp(&probabilities[a]).unwrap());
   let sorted_values: Vec<f64> = indices.iter().map(|&i| probabilities[i]).collect();
 
-  println!("Most similar nearby tokens to [{}]:\n", query);
+  println!("Most similar nearby tokens to [{}] via nn forward propagation:\n", query);
 
   let mut i = 0;
   for iter in indices.iter().zip(sorted_values.iter()) {
     println!("[{}]: {}\t| probability: {}", i, index_to_token[iter.0], iter.1);
     i += 1;
 
-    if i >= 20 {
+    if i >= 10 {
         break;
     }
   }
 
-  print_embedding(
-    query,
-    &get_embedding(&model, query, &token_to_index).unwrap()
-  );
+  // print_embedding(
+  //   query,
+  //   &get_embedding(&model, query, &token_to_index).unwrap()
+  // );
+}
+
+fn 
+closest_embeddings (embeddings: &HashMap<String, Vec<f64>>, query: &str)
+{
+  let mut heap: BinaryHeap<(OrderedFloat<f64>, String)> = BinaryHeap::new();
+  heap.push((OrderedFloat(0.4 as f64), "a".to_string()));
+
+  let query_vector = embeddings.get(query).unwrap();
+
+  for (word, vector) in embeddings.iter() {
+    let similarity = cosine_similarity(&query_vector, vector);
+    heap.push((OrderedFloat(similarity), word.to_string()));
+  }
+
+  println!("\nMost similar nearby tokens to [{}] via embeddings cosine similarity:\n", query);
+
+  for i in 0..10 {
+    let tmp = heap.pop().unwrap();
+    println!("[{}]: {}\t| probability: {}", i, tmp.1, tmp.0.0);
+  }
 }
 
 fn
@@ -127,7 +159,7 @@ cosine_similarity (v1: &[f64], v2: &[f64]) -> f64
 fn
 word_analogy (embeddings: &HashMap<String, Vec<f64>>, a: &str, b: &str, c: &str) -> Option<String> 
 {
-  println!("computing analogy for {} => {}, {}?", a, b, c);
+  println!("\nComputing analogy for {} - {} + {} = ?", a, b, c);
   let v_a = embeddings.get(a)?;
   let v_b = embeddings.get(b)?;
   let v_c = embeddings.get(c)?;
@@ -143,6 +175,10 @@ word_analogy (embeddings: &HashMap<String, Vec<f64>>, a: &str, b: &str, c: &str)
   for (word, vector) in embeddings.iter() {
       if word != a && word != b && word != c {
           let similarity = cosine_similarity(&target_vector, vector);
+
+          if word.eq("clara") {
+            println!(">> clara: {}", similarity);
+          }
 
           if similarity > max_similarity {
               max_similarity = similarity;
@@ -166,6 +202,7 @@ main ()
     .arg(arg!(--epochs <VALUE>).required(false))
     .arg(arg!(--predict <VALUE>).required(false))
     .arg(arg!(--load <VALUE>).required(false))
+    .arg(arg!(--save).required(false))
     .get_matches();
 
   let entropy_opt = matches.get_one::<bool>("entropy");
@@ -173,6 +210,7 @@ main ()
   let epochs_opt = matches.get_one::<String>("epochs");
   let predict_opt = matches.get_one::<String>("predict");
   let load_opt = matches.get_one::<String>("load");
+  let save_opt = matches.get_one::<bool>("save");
 
   let epochs = match epochs_opt.as_deref() {
     Some(epoch_string) => epoch_string.parse::<usize>().unwrap(),
@@ -189,15 +227,20 @@ main ()
     }
   };
 
+  let save = match save_opt {
+    Some(s) => s,
+    _ => &true
+  };
+
   match (entropy_opt, predict_opt) {
     (Some(true), None) => {
-        run(epochs, true, None, load_opt, &text);
+        run(epochs, true, None, load_opt, *save, &text);
     },
     (Some(true), Some(query)) => {
-        run(epochs, true, Some(query), load_opt, &text)
+        run(epochs, true, Some(query), load_opt, *save, &text)
     },
     (Some(false), Some(query)) => {
-        run(epochs, false, Some(query), load_opt, &text)
+        run(epochs, false, Some(query), load_opt, *save, &text)
     },
     _ => {
         println!("no options provided");
