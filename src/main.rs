@@ -1,16 +1,16 @@
 use clap::{arg, Command};
-use std::{fs, io::Read};
-use ndarray::{Array, Array1, Array2, ArrayView, Axis, Ix2};
-use ndarray_rand::RandomExt;
-use ndarray_rand::rand_distr::Uniform;
+use std::{fs};
+use ndarray::{Array2};
+
+
 use ordered_float::OrderedFloat;
-use rand::distributions::Standard;
+
 use rand::prelude::*;
-use rand::{thread_rng, Rng};
-use regex::Regex;
-use std::collections::{BinaryHeap, HashMap, HashSet};
-use std::cmp::Reverse;
-use std::ops::{Mul, Sub, SubAssign};
+
+
+use std::collections::{BinaryHeap, HashMap};
+
+
 use word2vec_rs::*;
 
 pub use crate::metadata::Metadata;
