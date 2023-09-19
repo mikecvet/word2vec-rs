@@ -35,14 +35,15 @@ run (
     // Load a serialized model, if it exists
     Some(path) => model.load_from_file(path).unwrap(),
 
-    // Otherwise, initialize weights from scratc
+    // Otherwise, initialize weights from scratch
     _ => model.init_nn_weights_he()
   }
 
-  train_model(&mut model, &metadata, WINDOW_SIZE, epochs, LEARNING_RATE, print_entropy);
+  if (epochs > 0) {
+    // Train the model for the given number of epochs
+    train_model(&mut model, &metadata, WINDOW_SIZE, epochs, LEARNING_RATE, print_entropy);
+  }
   
-  println!("model trained");
-
   if save {
     match model.save_to_file("./model.out") {
       Err(error) => println!("error: {}", error),
@@ -50,22 +51,25 @@ run (
     }
   }
 
+  let mut word_embeddings: HashMap<String, Vec<f64>> = HashMap::new();
+  for entry in metadata.token_to_index.iter() {
+    word_embeddings.insert(
+      entry.0.clone(), 
+      model.extract_embedding(entry.0, &metadata.token_to_index).unwrap()
+    );
+  }
+
   match query {
     Some(q) => {
-        nn_forward_propagation(q, &model, &metadata.token_to_index, &metadata.index_to_token, metadata.vocab_size);
-        
-        let mut word_embeddings: HashMap<String, Vec<f64>> = HashMap::new();
-        for entry in metadata.token_to_index.iter() {
-          word_embeddings.insert(
-            entry.0.clone(), 
-            model.extract_embedding(entry.0, &metadata.token_to_index).unwrap()
-          );
-        }
+        let nn_results = nn_forward_propagation(q, &model, &metadata.token_to_index, &metadata.index_to_token, metadata.vocab_size);
+        let e_results = closest_embeddings (q, &word_embeddings);
 
-        closest_embeddings (&word_embeddings, q);
+        print_query_results(q, &nn_results, &e_results);
 
-        match word_analogy(&word_embeddings, q, "oakland", "clara") {
-          Some(analogy) => println!("best word analogy: {}", analogy),
+        match word_analogy(q, "oakland", "clara", &word_embeddings) {
+          Some(analogy) => {
+            println!("best word analogy: \"{}\" - \"{}\" + \"{}\" = \"{}\" (similarity {:.5})", q, "oakland", "clara", analogy.0, analogy.1)
+          },
           _ => println!("could not find an analogy for {}", ""),
         }
     },
@@ -73,6 +77,27 @@ run (
   }
 }
 
+fn 
+print_query_results (query: &str, nn_results: &Vec<(String, f64)>, e_results: &Vec<(String, f64)>) 
+{  
+  let mut i = 0;
+
+  println!("Most similar nearby tokens to [{}] via nn forward propagation:\n", query);
+  for iter in nn_results.iter() {
+    println!("[{}]: {}\t| probability: {:.7}", i, iter.0, iter.1);
+    i += 1;
+  }
+
+  println!("\nMost similar nearby tokens to [{}] via embeddings cosine similarity:\n", query);
+  for iter in e_results.iter() {
+    println!("[{}]: {}\t| probability: {:.7}", i, iter.0, iter.1);
+    i += 1;
+  }
+}
+
+/// Executes a prediction from our neural network. Ultimately converts the given query string 
+/// into a one-hot-encoded vector and runs it through a forward propagation process. Sorts
+/// the set of similar tokens to the given query and prints out the top ten, along with their probabilities
 fn
 nn_forward_propagation (
   query: &str,
@@ -80,64 +105,69 @@ nn_forward_propagation (
   token_to_index: &HashMap<String, usize>,
   index_to_token: &HashMap<usize, String>, 
   vocab_size: usize
-) {
-  let a_learning = encode(
+) -> Vec<(String, f64)> 
+{
+  // Encode the query into a one-hot vector
+  let query_vector = encode(
     *token_to_index.get(query).unwrap(), 
     vocab_size
   );
 
-  let results = forward_propagation(&model, &a_learning);
-  let probabilities = results.1.row(0);
+  let mut results: Vec<(String, f64)> = Vec::new();
+  // Generates predictions for the query vector
+  let p_results = forward_propagation(&model, &query_vector);
+
+  // The probability distribution from the propagation
+  let probabilities = p_results.1.row(0);
 
   let mut indices: Vec<usize> = (0..probabilities.len()).collect();
   indices.sort_by(|&a, &b| probabilities[b].partial_cmp(&probabilities[a]).unwrap());
   let sorted_values: Vec<f64> = indices.iter().map(|&i| probabilities[i]).collect();
 
-  println!("Most similar nearby tokens to [{}] via nn forward propagation:\n", query);
-
   let mut i = 0;
   for iter in indices.iter().zip(sorted_values.iter()) {
-    println!("[{}]: {}\t| probability: {}", i, index_to_token[iter.0], iter.1);
+    results.push((index_to_token[iter.0].clone(), *iter.1));
     i += 1;
 
     if i >= 10 {
         break;
     }
   }
+
+  results
 }
 
+/// Given a query string and a map of token->vector embeddings, executes a cosine similarity evaluation of this
+/// query term's embedding against the complete set of available embeddings to find the nearest matches. 
+/// Returns the top ten matches and their corresponding similarity
 fn 
-closest_embeddings (embeddings: &HashMap<String, Vec<f64>>, query: &str)
+closest_embeddings (query: &str, embeddings: &HashMap<String, Vec<f64>>) -> Vec<(String, f64)>
 {
+  let mut results: Vec<(String, f64)> = Vec::new();
   let mut heap: BinaryHeap<(OrderedFloat<f64>, String)> = BinaryHeap::new();
-  heap.push((OrderedFloat(0.4 as f64), "a".to_string()));
 
+  // Get the embedded representation of this query term
   let query_vector = embeddings.get(query).unwrap();
 
+  // Iterate over all word embeddings, calculate their cosine similarity, and insert into a heap. 
+  // This heap will be used to extract the most similar terms afterwards
   for (word, vector) in embeddings.iter() {
-    let similarity = cosine_similarity(&query_vector, vector);
-    heap.push((OrderedFloat(similarity), word.to_string()));
+    if !word.eq(query) {
+      let similarity = cosine_similarity(&query_vector, vector);
+      heap.push((OrderedFloat(similarity), word.to_string()));
+    }
   }
 
-  println!("\nMost similar nearby tokens to [{}] via embeddings cosine similarity:\n", query);
-
-  for i in 0..10 {
+  // Collect the top-ten most similar terms and add them to the results vector
+  for _ in 0..10 {
     let tmp = heap.pop().unwrap();
-    println!("[{}]: {}\t| probability: {}", i, tmp.1, tmp.0.0);
+    results.push((tmp.1, tmp.0.0));
   }
+
+  results
 }
 
-fn
-print_embedding (token: &str, v: &Array2<f64>)
-{
-  println!("\nembedding vector for [{}]:", token);
-  println!("[");
-  for iter in v.iter() {
-    println!("  {},", *iter);
-  }
-  println!("]");
-}
-
+/// Calculates and returns the cosine similarity between two vectors
 fn 
 cosine_similarity (v1: &[f64], v2: &[f64]) -> f64 
 {
@@ -148,17 +178,27 @@ cosine_similarity (v1: &[f64], v2: &[f64]) -> f64
   dot_product / (norm_v1 * norm_v2)
 }
 
+/// Computes an embeddings-based "word analogy", based on the example provided in the original Word2Vec paper
+/// https://arxiv.org/pdf/1301.3781.pdf
+/// 
+///   vector(”King”) - vector(”Man”) + vector(”Woman”) -> vector("Queen")
+/// 
+/// Given three strings, a, b, and c, attempts to return the most likely analogy given that context, which is
+///   a - b + c = ?
+/// 
+/// This is done by computing that vector math as described, and then iterating over the entire set of
+/// embeddings to find the highest cosine similarity to the target vector `u`
 fn
-word_analogy (embeddings: &HashMap<String, Vec<f64>>, a: &str, b: &str, c: &str) -> Option<String> 
+word_analogy (a: &str, b: &str, c: &str, embeddings: &HashMap<String, Vec<f64>>) -> Option<(String, f64)> 
 {
   println!("\nComputing analogy for \"{}\" - \"{}\" + \"{}\" = ?", a, b, c);
   let v_a = embeddings.get(a)?;
   let v_b = embeddings.get(b)?;
   let v_c = embeddings.get(c)?;
   
-  let mut target_vector = vec![0.0; v_a.len()];
+  let mut u = vec![0.0; v_a.len()];
   for i in 0..v_a.len() {
-      target_vector[i] = v_a[i] - v_b[i] + v_c[i];
+      u[i] = v_a[i] - v_b[i] + v_c[i];
   }
 
   let mut best_word = None;
@@ -166,16 +206,11 @@ word_analogy (embeddings: &HashMap<String, Vec<f64>>, a: &str, b: &str, c: &str)
 
   for (word, vector) in embeddings.iter() {
       if word != a && word != b && word != c {
-          let similarity = cosine_similarity(&target_vector, vector);
-
-          if word.eq("clara") {
-            println!(">> clara: {}", similarity);
-          }
+          let similarity = cosine_similarity(&u, vector);
 
           if similarity > max_similarity {
               max_similarity = similarity;
-              best_word = Some(word.clone());
-              println!("setting best word to {:?} | {:.5}", best_word, similarity);
+              best_word = Some((word.clone(), max_similarity));
           }
       }
   }
@@ -209,6 +244,7 @@ main ()
     _ => DEFAULT_EPOCHS
   };
 
+  // Load the text to process and train upon
   let text = match input_opt {
     Some(path) => {
         fs::read_to_string(path).expect("unable to open file!").parse().unwrap()

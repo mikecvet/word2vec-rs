@@ -105,6 +105,10 @@ build_skip_gram_training_data (
   }
 }
 
+/// Trains the model. 
+/// 
+/// Given corpus metadata and hyperparams like window size and number of epochs, generates a 
+/// training data set for each epoch and runs backpropagation against it.
 pub fn 
 train_model (
   model: &mut Model,
@@ -114,9 +118,12 @@ train_model (
   learning_rate: f64,
   print: bool
 ) {
+    // The SubSampler is used to nondeterministically remove frequent terms from the training data set. 
+    // Since training data is recomputed during each epoch, each round will be trained against slight variations
+    // in the training data matrices.
     let sampler = SubSampler::new(metadata.token_counts.clone(), metadata.tokens.len() as f64);
 
-    if print {
+    if print && epochs > 0 {
       println!("entopy per epoch:");
     }
 
@@ -130,13 +137,17 @@ train_model (
           metadata.vocab_size, 
           window_size
         );
+
+        // Run backpropagation and possibly record the cross-entropy error from this process
         let ce = back_propagation(model, td, learning_rate);
+
         if print {
             println!("{:.3}", ce);
         }
       }
 }
 
+/// Runs forward propagation against this neural network.
 pub fn 
 forward_propagation (model: &Model, x: &Array2<f64>) -> (Array2<f64>, Array2<f64>) 
 {
@@ -146,20 +157,23 @@ forward_propagation (model: &Model, x: &Array2<f64>) -> (Array2<f64>, Array2<f64
   (a1, probabilities)
 }
 
+/// Runs back propagation aginst this neural network. 
 pub fn 
-back_propagation (model: &mut Model, training_data: TrainingData, alpha: f64) -> f64 
+back_propagation (model: &mut Model, training_data: TrainingData, rate: f64) -> f64 
 {
   let (a, probabilities) = forward_propagation(model, &training_data.x);
 
+  // Compute the cross-entropy loss from the forward propagation step
   let ce = cross_entropy(&probabilities, &training_data.y);
 
-  let da2 = probabilities.sub(training_data.y);
-  let dw2 = (a.t()).dot(&da2.clone());
-  let da1 = da2.dot(&model.w2.t());
-  let dw1 = training_data.x.t().dot(&da1);
+  let p0 = probabilities.sub(training_data.y);
+  let a0 = (a.t()).dot(&p0.clone());
+  let p1 = p0.dot(&model.w2.t());
+  let a1 = training_data.x.t().dot(&p1);
 
-  model.w1 = model.w1.clone().sub(alpha * dw1);
-  model.w2 = model.w2.clone().sub(alpha * dw2);
+  // Update the model with new weights
+  model.w1 = model.w1.clone().sub(rate * a1);
+  model.w2 = model.w2.clone().sub(rate * a0);
 
   ce
 }
