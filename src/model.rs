@@ -40,7 +40,9 @@ impl Model {
     }
   }
 
-  /// Initializes the weight vectors for this model using the He (et al) initialization method
+  /// Initializes the weight vectors for this model using the He (et al) initialization method 
+  /// introduced here https://arxiv.org/pdf/1502.01852.pdf
+  /// 
   /// The distribution mean is 0, with variance sqrt(2 / n or m) where for w1 n = vocabulary_size
   /// and m = embedding_size
   pub fn 
