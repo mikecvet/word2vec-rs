@@ -31,17 +31,6 @@ impl SubSampler {
   /// Discussed in paper https://arxiv.org/pdf/1310.4546.pdf
   pub fn should_keep (&self, word: &String) -> bool {
     let r: f64 = rand::random(); // A value between 0.0 and 1.0
-    if r < self.keep_probability(word) {
-      
-      true
-    } else {
-      let word_frequency = match self.term_counts.get(word) {
-        Some(&freq) => freq as f64 / self.term_total,
-        None => 1.0 // If the word doesn't exist in our map, keep it.
-    };
-      //println!("dropping {} because [freq {}] {} > {}", word, word_frequency, r, self.keep_probability(word));
-      false
-      //true
-    }
+    r < self.keep_probability(word)
   }
 }

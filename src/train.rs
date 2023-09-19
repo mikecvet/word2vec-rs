@@ -1,10 +1,6 @@
 use ndarray::{Array, Array1, Array2, ArrayView, Axis, Ix2};
 use ndarray_rand::RandomExt;
 use ndarray_rand::rand_distr::{Uniform, Normal};
-use rand::distributions::Standard;
-use rand::prelude::*;
-use rand::{thread_rng, Rng};
-use regex::Regex;
 use std::collections::HashMap;
 use std::ops::{Mul, Sub, SubAssign};
 
@@ -110,54 +106,6 @@ build_skip_gram_training_data (
 }
 
 pub fn 
-init_network_standard (vocabulary_size: usize, embedding_size: usize) -> Model 
-{
-  let mut m: Array2<f64> = Array2::zeros((vocabulary_size, embedding_size));
-  let mut n: Array2<f64> = Array2::zeros((embedding_size, vocabulary_size));
-
-  let mut rng = StdRng::from_entropy();    
-
-  for i in 0..vocabulary_size {
-      for j in 0..embedding_size {
-          m[[i, j]] = rng.sample(Standard);
-      }
-  }
-
-  for i in 0..embedding_size {
-      for j in 0..vocabulary_size {
-          n[[i, j]] = rng.sample(Standard);
-      }
-  }
-
-  Model { w1: m, w2: n }
-}
-
-pub fn 
-init_network_glorot (vocabulary_size: usize, embedding_size: usize) -> Model 
-{
-  let mut w1: Array2<f64> = Array2::zeros((vocabulary_size, embedding_size));
-  let mut w2: Array2<f64> = Array2::zeros((embedding_size, vocabulary_size));
-
-  let mut rng = StdRng::from_entropy();
-
-  let limit_w1 = (6.0 / (vocabulary_size + embedding_size) as f64).sqrt();
-  let distribution_w1 = Uniform::from(-limit_w1..limit_w1);
-
-  for val in w1.iter_mut() {
-      *val = rng.sample(distribution_w1);
-  }
-
-  let limit_w2 = (6.0 / (embedding_size + vocabulary_size) as f64).sqrt();
-  let distribution_w2 = Uniform::from(-limit_w2..limit_w2);
-
-  for val in w2.iter_mut() {
-      *val = rng.sample(distribution_w2);
-  }
-
-  Model { w1, w2 }
-}
-
-pub fn 
 train_model (
   model: &mut Model,
   metadata: &Metadata,
@@ -242,14 +190,6 @@ cross_entropy (z: &Array2<f64>, y: &Array2<f64>) -> f64
 {
   let mut ce: f64 = 0.0;
   for iter in z.iter().zip(y.iter()) {
-    // let z_0 = iter.0 + 0.0000000001;
-    // // if z_0 == 0.0 {
-    // //   println!("z0 is 0");
-    // //   println!("Z: {:?}", z);
-    // // }
-    // // if z_0.is_nan() {
-    // //   println!("z0 is nan");
-    // // }
     ce += iter.0.log2() * iter.1;
   }
 

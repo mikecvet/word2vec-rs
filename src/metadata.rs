@@ -16,7 +16,7 @@ impl Metadata
   {
     let stop_words: HashSet<String> = 
     vec![
-      "the", "in", "of", "a", "am", "an", "and", "any", "are", "as", "at", "because", "i", "by", "from", 
+      "the", "in", "of", "a", "am", "an", "and", "any", "are", "as", "at", "because", "i", "by", "it", "from", 
       "is", "has", "on", "over", "s", "such", "was", "which", "with", "for", "to", "that"
     ].iter()
       .cloned()
@@ -66,4 +66,82 @@ tokenize (regex: &Regex, text: &str, stop_words: HashSet<String>) -> Vec<String>
     .filter_map(|token| token.as_str().parse().ok())
     .filter(|token| !stop_words.contains(token))
     .collect()
+}
+
+#[cfg(test)]
+mod tests 
+{
+  use super::*;
+
+  
+  #[test]
+  fn test_stop_words () 
+  {
+    let metadata = Metadata::init("The as it over a i and such to that which was");
+    let v: Vec<String> = vec![];
+
+    assert!(metadata.tokens.eq(&v));
+  }
+
+  #[test]
+  fn test_init_tokenization () 
+  {
+    let metadata = Metadata::init("The quick, brown fox jumps over the lazy dog.");
+    let v = vec!["quick", "brown", "fox", "jumps", "lazy", "dog"];
+
+    assert!(metadata.tokens.eq(&v));
+  }
+
+  #[test]
+  fn test_regex_dash () 
+  {
+    let metadata = Metadata::init("token-and-dash");
+    let v = vec!["token", "dash"];
+
+    println!("output {:?}", metadata.tokens);
+
+    assert!(metadata.tokens.eq(&v));
+  }
+
+  #[test]
+  fn test_vocab_size () 
+  {
+    let metadata = Metadata::init("The quick brown fox jumps over the lazy, lazy dog.");
+
+    assert!(metadata.vocab_size == 6);
+  }
+
+  #[test]
+  fn test_token_counts () 
+  {
+    let metadata = Metadata::init("The quick brown fox jumps over the lazy, lazy dog.");
+
+    assert!(metadata.token_counts.get("quick").unwrap().eq(&1));
+    assert!(metadata.token_counts.get("lazy").unwrap().eq(&2));
+    assert!(metadata.token_counts.get("dog").unwrap().eq(&1));
+  }
+
+  #[test]
+  fn test_token_to_index () 
+  {
+    let metadata = Metadata::init("The quick brown fox jumps over the lazy dog.");
+
+    // ["quick", "brown", "fox", "jumps", "lazy", "dog"];
+
+    assert!(metadata.token_to_index.get("quick").unwrap().eq(&0));
+    assert!(metadata.token_to_index.get("lazy").unwrap().eq(&4));
+    assert!(metadata.token_to_index.get("dog").unwrap().eq(&5));
+  }
+
+  #[test]
+  fn test_index_to_token () 
+  {
+    let metadata = Metadata::init("The quick brown fox jumps over the lazy dog.");
+
+    // ["quick", "brown", "fox", "jumps", "lazy", "dog"];
+
+    assert!(metadata.index_to_token.get(&0).unwrap().eq("quick"));
+    assert!(metadata.index_to_token.get(&4).unwrap().eq("lazy"));
+    assert!(metadata.index_to_token.get(&5).unwrap().eq("dog"));
+  }
 }

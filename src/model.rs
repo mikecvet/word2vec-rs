@@ -3,12 +3,15 @@ use ndarray_rand::rand_distr::{Uniform, Normal};
 use rand::distributions::Standard;
 use rand::prelude::*;
 use rand::{thread_rng, Rng};
+use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::{Error, Read, Write};
 use std::collections::HashMap;
 
 pub use crate::metadata::Metadata;
 pub use crate::sample::SubSampler;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Model {
     pub w1: Array2<f64>,
     pub w2: Array2<f64>,
@@ -84,6 +87,38 @@ impl Model {
         *val = rng.sample(distribution_w2);
     }
   }
+
+  pub fn 
+  save_to_file (&self, path: &str) -> Result<(), Error> 
+  {
+    let serialized_data = serde_json::to_string(&self)?;
+    
+    let mut file = File::create(path)?;
+
+    match file.write_all(serialized_data.as_bytes()) {
+      Ok(_) => println!("model data saved to {}", path),
+      Err(e) => println!("error saving model data: {}", e)
+    }
+
+    Ok(())
+  }
+
+  pub fn 
+  load_from_file (&mut self, path: &str) -> Result<(), Error> 
+  {
+    let mut file = File::open(path)?;
+    let mut serialized_data = String::new();
+
+    file.read_to_string(&mut serialized_data)?;
+
+    let deserialized_model: Model = serde_json::from_str(&serialized_data)?;
+    self.w1 = deserialized_model.w1;
+    self.w2 = deserialized_model.w2;
+
+    println!("loaded model data from {}, w1.shape {:?} w2.shape {:?}", path, self.w1.shape(), self.w2.shape());
+    
+    Ok(())
+  }
 }
 
 #[cfg(test)]
@@ -92,15 +127,22 @@ mod tests
   use super::*;
 
   #[test]
-  fn test_init_nn_weights_he () 
+  fn test_init () 
   {
-    let mut model = Model::new(1, 1);
-    model.init_nn_weights_he();
+    let model = Model::new(1, 1);
 
     assert!(model.w1.len() == 1);
     assert!(model.w2.len() == 1);
+  }
 
-    assert!(model.w1[[0, 0]] == 1.0);
-    assert!(model.w2[[0, 0]] == 1.0);
+  #[test]
+  fn test_update () 
+  {
+    let x = Array2::zeros((1, 4));
+    let y = Array2::zeros((1, 4));
+    let model = Model::update(x, y);
+
+    assert!(model.w1.len() == 4);
+    assert!(model.w2.len() == 4);
   }
 }

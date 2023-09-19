@@ -18,21 +18,31 @@ pub use crate::sample::SubSampler;
 const EMBEDDINGS_SIZE: usize = 256;
 const DEFAULT_EPOCHS: usize = 65;
 const WINDOW_SIZE: i32 = 3;
+//const LEARNING_RATE: f64 = 0.001
+const LEARNING_RATE: f64 = 0.0003;
 
 fn
-run (epochs: usize, print_entropy: bool, query: Option<&str>, text: &str) 
+run (epochs: usize, print_entropy: bool, query: Option<&str>, model_path: Option<&String>, text: &str) 
 {
   let metadata = Metadata::init(text);
 
   let mut model = Model::new(metadata.vocab_size, EMBEDDINGS_SIZE);
-  // model.init_nn_weights_he();
-  model.init_network_glorot();
 
-  println!("initialized model with weight vector dimensions {:?}", model.w1.shape());
+  match model_path {
+    Some(path) => model.load_from_file(path).unwrap(),
+    _ => model.init_nn_weights_he()
+  }
 
-  train_model(&mut model, &metadata, WINDOW_SIZE, epochs, 0.001, print_entropy);
+  //println!("initialized model with weight vector dimensions {:?}", model.w1.shape());
 
+  train_model(&mut model, &metadata, WINDOW_SIZE, epochs, LEARNING_RATE, print_entropy);
+  
   println!("model trained");
+
+  match model.save_to_file("./model.out") {
+    Err(error) => println!("error: {}", error),
+    _ => ()
+  }
 
   match query {
     Some(q) => {
@@ -50,7 +60,7 @@ run (epochs: usize, print_entropy: bool, query: Option<&str>, text: &str)
     word_embeddings.insert(entry.0.clone(), v);
   }
 
-  match word_analogy(&word_embeddings, "francisco", "giants", "athletics") {
+  match word_analogy(&word_embeddings, "alameda", "oakland", "jose") {
     Some(analogy) => println!("best word analogy: {}", analogy),
     _ => println!("could not find an analogy for {}", ""),
   }
@@ -124,7 +134,7 @@ word_analogy (embeddings: &HashMap<String, Vec<f64>>, a: &str, b: &str, c: &str)
   
   let mut target_vector = vec![0.0; v_a.len()];
   for i in 0..v_a.len() {
-      target_vector[i] = v_b[i] - v_a[i] + v_c[i];
+      target_vector[i] = v_a[i] - v_b[i] + v_c[i];
   }
 
   let mut best_word = None;
@@ -133,7 +143,7 @@ word_analogy (embeddings: &HashMap<String, Vec<f64>>, a: &str, b: &str, c: &str)
   for (word, vector) in embeddings.iter() {
       if word != a && word != b && word != c {
           let similarity = cosine_similarity(&target_vector, vector);
-          // let similarity = cosine_similarity(&v_a, vector);
+
           if similarity > max_similarity {
               max_similarity = similarity;
               best_word = Some(word.clone());
@@ -152,22 +162,24 @@ main ()
     .version("0.1")
     .about("Simple word2vec implementation")
     .arg(arg!(--entropy).required(false))
-    .arg(arg!(--path <VALUE>).required(false))
+    .arg(arg!(--input <VALUE>).required(false))
     .arg(arg!(--epochs <VALUE>).required(false))
     .arg(arg!(--predict <VALUE>).required(false))
+    .arg(arg!(--load <VALUE>).required(false))
     .get_matches();
 
   let entropy_opt = matches.get_one::<bool>("entropy");
-  let path_opt = matches.get_one::<String>("path");
+  let input_opt = matches.get_one::<String>("input");
   let epochs_opt = matches.get_one::<String>("epochs");
   let predict_opt = matches.get_one::<String>("predict");
+  let load_opt = matches.get_one::<String>("load");
 
   let epochs = match epochs_opt.as_deref() {
     Some(epoch_string) => epoch_string.parse::<usize>().unwrap(),
     _ => DEFAULT_EPOCHS
   };
 
-  let text = match path_opt {
+  let text = match input_opt {
     Some(path) => {
         // https://www.corpusdata.org/formats.asp
         fs::read_to_string(path).expect("unable to open file!").parse().unwrap()
@@ -179,13 +191,13 @@ main ()
 
   match (entropy_opt, predict_opt) {
     (Some(true), None) => {
-        run(epochs, true, None, &text);
+        run(epochs, true, None, load_opt, &text);
     },
     (Some(true), Some(query)) => {
-        run(epochs, true, Some(query), &text)
+        run(epochs, true, Some(query), load_opt, &text)
     },
     (Some(false), Some(query)) => {
-        run(epochs, false, Some(query), &text)
+        run(epochs, false, Some(query), load_opt, &text)
     },
     _ => {
         println!("no options provided");
