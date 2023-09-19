@@ -167,7 +167,7 @@ back_propagation (model: &mut Model, training_data: TrainingData, rate: f64) -> 
   let ce = cross_entropy(&probabilities, &training_data.y);
 
   let p0 = probabilities.sub(training_data.y);
-  let a0 = (a.t()).dot(&p0.clone());
+  let a0 = (a.t()).dot(&p0);
   let p1 = p0.dot(&model.w2.t());
   let a1 = training_data.x.t().dot(&p1);
 

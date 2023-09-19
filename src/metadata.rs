@@ -11,14 +11,20 @@ pub struct Metadata {
 
 impl Metadata 
 {
+  /// Initializes this Metadata struct. Tokenizes the input text, lowercases it, strips out common stop words, 
+  /// and then computes a series of metadata representations:
+  ///  - {'token' -> index} mapping
+  ///  - {index -> 'token'} mapping
+  ///  - {'token' -> count} mapping
+  /// And overall vocabulary size, which is equal to the size of the above maps.
   pub fn 
   init (text: &str) -> Self 
   {
     let stop_words: HashSet<String> = 
-    vec![
-      "the", "in", "of", "a", "am", "an", "and", "any", "are", "as", "at", "because", "i", "by", "it", "from", 
-      "is", "has", "on", "over", "s", "such", "was", "which", "with", "for", "to", "that"
-    ].iter()
+      vec![
+        "a", "am", "an", "and", "any", "are", "as", "at", "because", "by", "for", "from", "has", "i", "in", "is", 
+        "it", "of", "on", "over", "s", "such", "that", "the", "to", "was", "which", "with"
+      ].iter()
       .cloned()
       .map(String::from)
       .collect();
@@ -72,7 +78,6 @@ tokenize (regex: &Regex, text: &str, stop_words: HashSet<String>) -> Vec<String>
 mod tests 
 {
   use super::*;
-
   
   #[test]
   fn test_stop_words () 
