@@ -1,8 +1,8 @@
-use ndarray::{Array, Array1, Array2, ArrayView, Axis, Ix2};
+use ndarray::{Array2, Axis};
 use ndarray_rand::RandomExt;
-use ndarray_rand::rand_distr::{Uniform, Normal};
+use ndarray_rand::rand_distr::Uniform;
 use std::collections::HashMap;
-use std::ops::{Mul, Sub, SubAssign};
+use std::ops::Sub;
 
 pub use crate::metadata::Metadata;
 pub use crate::model::*;
@@ -194,18 +194,6 @@ cross_entropy (z: &Array2<f64>, y: &Array2<f64>) -> f64
   }
 
   -ce
-}
-
-pub fn 
-get_embedding (model: &Model, token: &str, token_to_index: &HashMap<String, usize>) -> Option<Vec<f64>> 
-{
-  match token_to_index.get(token) {
-    Some(indx) => {
-      Some(model.w1.row(*indx).to_owned().into_raw_vec())
-    },
-
-    None => None
-  }
 }
 
 #[cfg(test)]

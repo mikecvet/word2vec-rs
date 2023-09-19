@@ -1,12 +1,10 @@
-use ndarray::{Array, Array1, Array2, ArrayView, Axis, Ix2};
+use ndarray::Array2;
 use ndarray_rand::rand_distr::{Uniform, Normal};
-use rand::distributions::Standard;
 use rand::prelude::*;
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Error, Read, Write};
-use std::collections::HashMap;
 
 pub use crate::metadata::Metadata;
 pub use crate::sample::SubSampler;
@@ -32,6 +30,7 @@ impl Model {
     }
   }
 
+  /// Return a new Model using the provided Array2s as underlying weight vectors
   pub fn 
   update (w1: Array2<f64>, w2: Array2<f64>) -> Self 
   {
@@ -68,26 +67,35 @@ impl Model {
     println!("initialized He weights: {}\n{}", self.w1, self.w2);
   }
 
+  /// Returns an embedding vector for the given token string, if it exists. The embedding vector is a row in this 
+  /// model's underlying trained `w1` weights matrix, corresponding to the index associated with the token via the 
+  /// `token_to_index` map.
+  /// 
+  /// For example, given a `w1` matrix
+  /// 
+  /// [
+  ///  [0.4, 0.5, 0.3],
+  ///  [0.1, 0.2, 0.3],
+  ///  [0.3, 0.2, 0.1]
+  /// ]
+  /// 
+  /// And a `token_to_index` map of {'a' -> 2}
+  /// 
+  /// This function returns the third row of `w1` corresponding to [0.3, 0.2, 0.1] above.
+  /// 
   pub fn 
-  init_network_glorot (&mut self)
+  extract_embedding (&self, token: &str, token_to_index: &HashMap<String, usize>) -> Option<Vec<f64>> 
   {
-    let mut rng = StdRng::from_entropy();
+    match token_to_index.get(token) {
+      Some(indx) => {
+        Some(self.w1.row(*indx).to_owned().into_raw_vec())
+      },
 
-    let limit_w1 = (6.0 / self.w1.len() as f64).sqrt();
-    let distribution_w1 = Uniform::from(-limit_w1..limit_w1);
-
-    for val in self.w1.iter_mut() {
-        *val = rng.sample(distribution_w1);
-    }
-
-    let limit_w2 = (6.0 / self.w2.len() as f64).sqrt();
-    let distribution_w2 = Uniform::from(-limit_w2..limit_w2);
-
-    for val in self.w2.iter_mut() {
-        *val = rng.sample(distribution_w2);
+      None => None
     }
   }
 
+  /// Saves the contents of this model's `w1` and `w2` weight matrices to the given path.
   pub fn 
   save_to_file (&self, path: &str) -> Result<(), Error> 
   {
@@ -103,6 +111,8 @@ impl Model {
     Ok(())
   }
 
+  /// Loads the contents of the model file located at the given path, if it exist, and sets this model's 
+  /// `w1` and `w2` weight matrices to those contents.
   pub fn 
   load_from_file (&mut self, path: &str) -> Result<(), Error> 
   {
@@ -144,5 +154,17 @@ mod tests
 
     assert!(model.w1.len() == 4);
     assert!(model.w2.len() == 4);
+  }
+
+  #[test]
+  fn test_get_embedding () 
+  {
+    let model = Model::new(1, 1);
+    let mut map: HashMap<String, usize> = HashMap::new();
+
+    map.insert("a".to_string(), 0);
+
+    let e = model.extract_embedding("a", &map).unwrap();
+    assert!(e.len() == 1);
   }
 }

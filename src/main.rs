@@ -1,20 +1,16 @@
 use clap::{arg, Command};
-use std::{fs};
+use std::fs;
 use ndarray::{Array2};
 
-
 use ordered_float::OrderedFloat;
-
 use rand::prelude::*;
 
-
 use std::collections::{BinaryHeap, HashMap};
-
 
 use word2vec_rs::*;
 
 pub use crate::metadata::Metadata;
-pub use crate::train::*;
+pub use crate::nn::*;
 pub use crate::sample::SubSampler;
 
 const EMBEDDINGS_SIZE: usize = 256;
@@ -27,21 +23,21 @@ fn
 run (
   epochs: usize, 
   print_entropy: bool, 
-  query: Option<&str>, 
+  query: Option<&String>, 
   model_path: Option<&String>, 
   save: bool, 
   text: &str
 ) {
   let metadata = Metadata::init(text);
-
   let mut model = Model::new(metadata.vocab_size, EMBEDDINGS_SIZE);
 
   match model_path {
+    // Load a serialized model, if it exists
     Some(path) => model.load_from_file(path).unwrap(),
+
+    // Otherwise, initialize weights from scratc
     _ => model.init_nn_weights_he()
   }
-
-  //println!("initialized model with weight vector dimensions {:?}", model.w1.shape());
 
   train_model(&mut model, &metadata, WINDOW_SIZE, epochs, LEARNING_RATE, print_entropy);
   
@@ -62,7 +58,7 @@ run (
         for entry in metadata.token_to_index.iter() {
           word_embeddings.insert(
             entry.0.clone(), 
-            get_embedding(&model, entry.0, &metadata.token_to_index).unwrap()
+            model.extract_embedding(entry.0, &metadata.token_to_index).unwrap()
           );
         }
 
@@ -108,11 +104,6 @@ nn_forward_propagation (
         break;
     }
   }
-
-  // print_embedding(
-  //   query,
-  //   &get_embedding(&model, query, &token_to_index).unwrap()
-  // );
 }
 
 fn 
@@ -153,13 +144,14 @@ cosine_similarity (v1: &[f64], v2: &[f64]) -> f64
   let dot_product: f64 = v1.iter().zip(v2.iter()).map(|(a, b)| a * b).sum();
   let norm_v1: f64 = v1.iter().map(|&x| x.powi(2)).sum::<f64>().sqrt();
   let norm_v2: f64 = v2.iter().map(|&x| x.powi(2)).sum::<f64>().sqrt();
+
   dot_product / (norm_v1 * norm_v2)
 }
 
 fn
 word_analogy (embeddings: &HashMap<String, Vec<f64>>, a: &str, b: &str, c: &str) -> Option<String> 
 {
-  println!("\nComputing analogy for {} - {} + {} = ?", a, b, c);
+  println!("\nComputing analogy for \"{}\" - \"{}\" + \"{}\" = ?", a, b, c);
   let v_a = embeddings.get(a)?;
   let v_b = embeddings.get(b)?;
   let v_c = embeddings.get(c)?;
@@ -219,7 +211,6 @@ main ()
 
   let text = match input_opt {
     Some(path) => {
-        // https://www.corpusdata.org/formats.asp
         fs::read_to_string(path).expect("unable to open file!").parse().unwrap()
     },
     _ => {
@@ -232,18 +223,10 @@ main ()
     _ => &true
   };
 
-  match (entropy_opt, predict_opt) {
-    (Some(true), None) => {
-        run(epochs, true, None, load_opt, *save, &text);
-    },
-    (Some(true), Some(query)) => {
-        run(epochs, true, Some(query), load_opt, *save, &text)
-    },
-    (Some(false), Some(query)) => {
-        run(epochs, false, Some(query), load_opt, *save, &text)
-    },
-    _ => {
-        println!("no options provided");
-    }
-  }
+  let entropy = match entropy_opt {
+    Some(e) => e,
+    _ => &false
+  };
+
+  run(epochs, *entropy, predict_opt, load_opt, *save, &text);
 }
