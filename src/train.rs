@@ -5,17 +5,6 @@ pub use crate::metadata::Metadata;
 pub use crate::model::*;
 pub use crate::subsampler::SubSampler;
 
-/// Generates a vector of zeroes with the exception of the specified index, which is set to 1.0 ("one-hot encoding").
-/// This encodes the presence of a specific categorical variable; in this case, a string token present in our 
-/// vocabulary set.
-pub fn 
-encode (indx: usize, n: usize) -> Array2<f64>
-{
-  let mut a = Array2::zeros((1, n));
-  a[[0, indx]] = 1.0;
-  a
-}
-
 /// Builds a set of training matrices based on the skip-graph architecture for word2vec.
 pub fn
 build_skip_gram_training_data (
@@ -83,8 +72,8 @@ build_skip_gram_training_data (
         // This trains the model of the relationship between the token at index(tokens[4]) and the surrounding tokens
         // at index(tokens[2, 3, 5 and 6]).
 
-        let a = encode(*token_to_index.get(&(tokens[i as usize])).unwrap(), vocabulary_size);
-        let b = encode(*token_to_index.get(&(tokens[j as usize])).unwrap(), vocabulary_size);
+        let a = encode_to_vector(*token_to_index.get(&(tokens[i as usize])).unwrap(), vocabulary_size);
+        let b = encode_to_vector(*token_to_index.get(&(tokens[j as usize])).unwrap(), vocabulary_size);
 
         // Append these encoding vectors to the X and Y vectors, which are currently 
         // lengthy single-dimension vectors to be encoded into 2D matrices later
@@ -146,29 +135,4 @@ train_model (
             println!("{:.3}", ce);
         }
       }
-}
-
-#[cfg(test)]
-mod tests 
-{
-    use ndarray_rand::rand_distr::num_traits::Float;
-
-    use super::*;
-
-    #[test]
-    fn test_encode ()
-    {
-        let v1 = encode(1, 10);
-        let v2 = encode(10, 100);
-        let v3 = encode(64, 256);
-
-        assert!(v1[[0, 0]] == 0.0);
-        assert!(v1[[0, 1]] == 1.0);
-        
-        assert!(v2[[0, 0]] == 0.0);
-        assert!(v2[[0, 10]] == 1.0);
-
-        assert!(v3[[0, 0]] == 0.0);
-        assert!(v3[[0, 64]] == 1.0);
-    }
 }

@@ -25,6 +25,49 @@ pub struct TrainingData {
   pub y: Array2<f64>
 }
 
+// Generates a vector of zeroes with the exception of the specified index, which is set to 1.0 ("one-hot encoding").
+/// This encodes the presence of a specific categorical variable; in this case, a string token present in our 
+/// vocabulary set.
+pub fn 
+encode_to_vector (indx: usize, n: usize) -> Array2<f64>
+{
+  let mut a = Array2::zeros((1, n));
+  a[[0, indx]] = 1.0;
+  a
+}
+
+/// The softmax function converts a vector of K real numbers into a probability distribution of 
+/// K possible outcomes
+/// 
+/// https://en.wikipedia.org/wiki/Softmax_function
+fn 
+softmax (x: &Array2<f64>) -> Array2<f64> 
+{
+  let x_exp = x.mapv(f64::exp);
+  let sum_exp = x_exp.sum_axis(Axis(1)).insert_axis(Axis(1));
+  &x_exp / &sum_exp
+}
+
+/// The cross-entropy loss measures the dissimilarity between the predicted probabilities 
+/// (from the softmax layer) and the true labels. In essence, it calculates how well the 
+/// predicted probabilities match up with the actual labels (here, identified by Y)
+/// 
+/// The idea is that for the correct class, the model should assign a high probability, 
+/// and for incorrect classes, it should assign a low probability. The cross-entropy loss 
+/// quantifies how well the model does this.
+/// 
+/// https://en.wikipedia.org/wiki/Cross-entropy
+fn 
+cross_entropy (p: &Array2<f64>, q: &Array2<f64>) -> f64 
+{
+  let mut ce: f64 = 0.0;
+  for iter in p.iter().zip(q.iter()) {
+    ce += iter.0.log2() * iter.1;
+  }
+
+  -ce
+}
+
 impl Model {
   pub fn 
   new (x: usize, y: usize) -> Self 
@@ -170,38 +213,6 @@ impl Model {
   }
 }
 
-/// The softmax function converts a vector of K real numbers into a probability distribution of 
-/// K possible outcomes
-/// 
-/// https://en.wikipedia.org/wiki/Softmax_function
-fn 
-softmax (x: &Array2<f64>) -> Array2<f64> 
-{
-  let x_exp = x.mapv(f64::exp);
-  let sum_exp = x_exp.sum_axis(Axis(1)).insert_axis(Axis(1));
-  &x_exp / &sum_exp
-}
-
-/// The cross-entropy loss measures the dissimilarity between the predicted probabilities 
-/// (from the softmax layer) and the true labels. In essence, it calculates how well the 
-/// predicted probabilities match up with the actual labels (here, identified by Y)
-/// 
-/// The idea is that for the correct class, the model should assign a high probability, 
-/// and for incorrect classes, it should assign a low probability. The cross-entropy loss 
-/// quantifies how well the model does this.
-/// 
-/// https://en.wikipedia.org/wiki/Cross-entropy
-fn 
-cross_entropy (p: &Array2<f64>, q: &Array2<f64>) -> f64 
-{
-  let mut ce: f64 = 0.0;
-  for iter in p.iter().zip(q.iter()) {
-    ce += iter.0.log2() * iter.1;
-  }
-
-  -ce
-}
-
 #[cfg(test)]
 mod tests 
 {
@@ -235,6 +246,23 @@ mod tests
 
   fn is_approx_0(val: f64) -> bool {
       (-EPSILON..=EPSILON).contains(&val)
+  }
+
+  #[test]
+  fn test_encode ()
+  {
+      let v1 = encode_to_vector(1, 10);
+      let v2 = encode_to_vector(10, 100);
+      let v3 = encode_to_vector(64, 256);
+
+      assert!(v1[[0, 0]] == 0.0);
+      assert!(v1[[0, 1]] == 1.0);
+      
+      assert!(v2[[0, 0]] == 0.0);
+      assert!(v2[[0, 10]] == 1.0);
+
+      assert!(v3[[0, 0]] == 0.0);
+      assert!(v3[[0, 64]] == 1.0);
   }
   
   #[test]
