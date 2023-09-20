@@ -1,53 +1,39 @@
 use clap::{arg, Command};
 use std::fs;
-use ndarray::{Array2};
-
-use ordered_float::OrderedFloat;
-use rand::prelude::*;
-
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{HashMap};
 
 use word2vec_rs::*;
-
+pub use crate::args::Args;
 pub use crate::metadata::Metadata;
 pub use crate::query::*;
 pub use crate::train::*;
 pub use crate::subsampler::SubSampler;
 
-const EMBEDDINGS_SIZE: usize = 96;
-const DEFAULT_EPOCHS: usize = 65;
-const WINDOW_SIZE: i32 = 5;
-//const LEARNING_RATE: f64 = 0.001;
-//const LEARNING_RATE: f64 = 0.0004;
-const LEARNING_RATE: f64 = 0.0001;
-
 fn
-run (
-  epochs: usize, 
-  print_entropy: bool, 
-  query: Option<&String>, 
-  analogy: Vec<String>,
-  model_path: Option<&String>, 
-  save: bool, 
-  text: &str
-) {
-  let metadata = Metadata::init(text);
-  let mut model = Model::new(metadata.vocab_size, EMBEDDINGS_SIZE);
+run (args: &Args)
+{
+  let metadata = Metadata::init(&args.text);
+  let mut model = Model::new(metadata.vocab_size, args.hyper_params.embeddings_size);
 
-  match model_path {
+  match &args.model_load_path {
     // Load a serialized model, if it exists
-    Some(path) => model.load_from_file(path).unwrap(),
+    Some(path) => model.load_from_file(&path).unwrap(),
 
     // Otherwise, initialize weights from scratch
     _ => model.init_nn_weights_he()
   }
 
-  if epochs > 0 {
+  if args.hyper_params.num_epochs > 0 {
     // Train the model for the given number of epochs
-    train_model(&mut model, &metadata, WINDOW_SIZE, epochs, LEARNING_RATE, print_entropy);
+    train_model(
+      &mut model, 
+      &metadata, 
+      &args.hyper_params,
+      args.print_entropy
+    );
   }
   
-  if save {
+  if args.save_model {
     match model.save_to_file("./model.out") {
       Err(error) => println!("error: {}", error),
       _ => ()
@@ -62,28 +48,27 @@ run (
     );
   }
 
-  match query {
+  match &args.predict {
     Some(q) => {
-        let nn_results = nn_prediction(q, &model, &metadata.token_to_id, &metadata.id_to_token, metadata.vocab_size);
-        let e_results = closest_embeddings (q, &word_embeddings);
+        let nn_results = nn_prediction(&q, &model, &metadata.token_to_id, &metadata.id_to_token, metadata.vocab_size);
+        let e_results = closest_embeddings (&q, &word_embeddings);
 
-        print_query_results(q, &nn_results, &e_results);
+        print_query_results(&q, &nn_results, &e_results);
     },
     _ => ()
   }
 
-  if analogy.len() == 3 {
-    let a = analogy.get(0).unwrap();
-    let b = analogy.get(1).unwrap();
-    let c = analogy.get(2).unwrap();
-
-    match word_analogy(a, b, c, &word_embeddings) {
-      Some(result) => {
-        println!("best word analogy: \"{}\" - \"{}\" + \"{}\" = \"{}\" (similarity {:.5})", 
-          a, b, c, result.0, result.1)
-      },
-      _ => println!("could not find an analogy for {}", ""),
+  match &args.analogy {
+    Some((a, b, c)) => {
+      match word_analogy(&a, &b, &c, &word_embeddings) {
+        Some(result) => {
+          println!("best word analogy: \"{}\" - \"{}\" + \"{}\" = \"{}\" (similarity {:.5})", 
+            a, b, c, result.0, result.1)
+        },
+        _ => println!("could not find an analogy for {}", ""),
+      }
     }
+    _ => ()
   }
 }
 
@@ -112,61 +97,40 @@ main ()
     .version("0.1")
     .about("Simple word2vec implementation")
     .arg(arg!(--analogy <VALUE>).required(false))
+    .arg(arg!(--embeddings_size <VALUE>).required(false))
     .arg(arg!(--entropy).required(false))
-    .arg(arg!(--input <VALUE>).required(false))
     .arg(arg!(--epochs <VALUE>).required(false))
-    .arg(arg!(--predict <VALUE>).required(false))
+    .arg(arg!(--input <VALUE>).required(false))
+    .arg(arg!(--learning_rate <VALUE>).required(false))
     .arg(arg!(--load <VALUE>).required(false))
+    .arg(arg!(--predict <VALUE>).required(false))
     .arg(arg!(--save).required(false))
+    .arg(arg!(--window_size <VALUE>).required(false))
     .get_matches();
 
-  let analogy_opt = matches.get_one::<String>("analogy");
-  let entropy_opt = matches.get_one::<bool>("entropy");
-  let input_opt = matches.get_one::<String>("input");
-  let epochs_opt = matches.get_one::<String>("epochs");
-  let predict_opt = matches.get_one::<String>("predict");
-  let load_opt = matches.get_one::<String>("load");
-  let save_opt = matches.get_one::<bool>("save");
+  let analogy_opt = matches.get_one::<String>("analogy").cloned();
+  let entropy_opt = matches.get_one::<bool>("entropy").cloned();
+  let input_opt = matches.get_one::<String>("input").cloned();
+  let epochs_opt = matches.get_one::<String>("epochs").cloned();
+  let predict_opt = matches.get_one::<String>("predict").cloned();
+  let embeddings_size_opt = matches.get_one::<String>("embeddings_size").cloned();
+  let learning_rate_opt = matches.get_one::<String>("learning_rate").cloned();
+  let window_size_opt = matches.get_one::<String>("window_size").cloned();
+  let load_opt = matches.get_one::<String>("load").cloned();
+  let save_opt = matches.get_one::<bool>("save").cloned();
 
-  let epochs = match epochs_opt.as_deref() {
-    Some(epoch_string) => epoch_string.parse::<usize>().unwrap(),
-    _ => DEFAULT_EPOCHS
-  };
+  let args = Args::new(
+    analogy_opt, 
+    input_opt, 
+    load_opt,
+    save_opt, 
+    predict_opt, 
+    entropy_opt, 
+    embeddings_size_opt, 
+    learning_rate_opt, 
+    epochs_opt, 
+    window_size_opt
+  );
 
-  // Load the text to process and train upon
-  let text = match input_opt {
-    Some(path) => {
-        fs::read_to_string(path).expect("unable to open file!").parse().unwrap()
-    },
-    _ => {
-        "".to_string()
-    }
-  };
-
-  let save = match save_opt {
-    Some(s) => s,
-    _ => &true
-  };
-
-  let entropy = match entropy_opt {
-    Some(e) => e,
-    _ => &false
-  };
-
-  let mut analogy: Vec<String> = Vec::new();
-  match analogy_opt {
-    Some(a) => {
-      let parts = a.split(",");
-      for iter in parts {
-        analogy.push(iter.to_string());
-      }
-
-      if analogy.len() != 3 {
-        panic!("--analogy requires an argument of three tokens separated by commas; for example, << a,b,c >>")
-      }
-    }
-    _ => ()
-  }
-
-  run(epochs, *entropy, predict_opt, analogy, load_opt, *save, &text);
+  run(&args);
 }

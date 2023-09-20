@@ -1,6 +1,7 @@
 use ndarray::{Array2, Axis};
 use std::collections::HashMap;
 
+pub use crate::args::*;
 pub use crate::metadata::Metadata;
 pub use crate::model::*;
 pub use crate::subsampler::SubSampler;
@@ -99,15 +100,14 @@ pub fn
 train_model (
   model: &mut Model,
   metadata: &Metadata,
-  window_size: i32,
-  epochs: usize,
-  learning_rate: f64,
+  hyper_params: &HyperParams,
   print: bool
 ) {
     // The SubSampler is used to nondeterministically remove frequent terms from the training data set. 
     // Since training data is recomputed during each epoch, each round will be trained against slight variations
     // in the training data matrices.
     let sampler = SubSampler::new(metadata.token_counts.clone(), metadata.tokens.len() as f64);
+    let epochs = hyper_params.num_epochs;
 
     if print && epochs > 0 {
       println!("entopy per epoch:");
@@ -121,11 +121,11 @@ train_model (
           &metadata.token_to_id, 
           &sampler, 
           metadata.vocab_size, 
-          window_size
+          hyper_params.window_size
         );
 
         // Run backpropagation and possibly record the cross-entropy error from this process
-        let ce = model.back_propagation(td, learning_rate);
+        let ce = model.back_propagation(td, hyper_params.learning_rate);
 
         if ce.is_nan() {
           panic!("gradient explosion!");

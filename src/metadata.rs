@@ -24,7 +24,7 @@ impl Metadata
   ///  - {'token' -> count} mapping
   /// And overall vocabulary size, which is equal to the size of the above maps.
   pub fn 
-  init (text: &str) -> Self 
+  init (text: &String) -> Self 
   {
     let stop_words: HashSet<String> = 
       vec![
@@ -71,7 +71,7 @@ impl Metadata
 /// Breaks the given text up into a vector of token strings, based on the provided Regex. Lowercases inputs, so
 /// all returned tokens are also lowercase.
 fn 
-tokenize (regex: &Regex, text: &str, stop_words: HashSet<String>) -> Vec<String> 
+tokenize (regex: &Regex, text: &String, stop_words: HashSet<String>) -> Vec<String> 
 {
   regex
     .find_iter(text.to_lowercase().as_str())
@@ -88,7 +88,7 @@ mod tests
   #[test]
   fn test_stop_words () 
   {
-    let metadata = Metadata::init("The as it over a i and such to that which was");
+    let metadata = Metadata::init(&"The as it over a i and such to that which was".to_string());
     let v: Vec<String> = vec![];
 
     assert!(metadata.tokens.eq(&v));
@@ -97,7 +97,7 @@ mod tests
   #[test]
   fn test_init_tokenization () 
   {
-    let metadata = Metadata::init("The quick, brown fox jumps over the lazy dog.");
+    let metadata = Metadata::init(&"The quick, brown fox jumps over the lazy dog.".to_string());
     let v = vec!["quick", "brown", "fox", "jumps", "lazy", "dog"];
 
     assert!(metadata.tokens.eq(&v));
@@ -106,7 +106,7 @@ mod tests
   #[test]
   fn test_regex_dash () 
   {
-    let metadata = Metadata::init("token-and-dash");
+    let metadata = Metadata::init(&"token-and-dash".to_string());
     let v = vec!["token", "dash"];
 
     println!("output {:?}", metadata.tokens);
@@ -117,7 +117,7 @@ mod tests
   #[test]
   fn test_vocab_size () 
   {
-    let metadata = Metadata::init("The quick brown fox jumps over the lazy, lazy dog.");
+    let metadata = Metadata::init(&"The quick brown fox jumps over the lazy, lazy dog.".to_string());
 
     assert!(metadata.vocab_size == 6);
   }
@@ -125,7 +125,7 @@ mod tests
   #[test]
   fn test_token_counts () 
   {
-    let metadata = Metadata::init("The quick brown fox jumps over the lazy, lazy dog.");
+    let metadata = Metadata::init(&"The quick brown fox jumps over the lazy, lazy dog.".to_string());
 
     assert!(metadata.token_counts.get("quick").unwrap().eq(&1));
     assert!(metadata.token_counts.get("lazy").unwrap().eq(&2));
@@ -135,7 +135,7 @@ mod tests
   #[test]
   fn test_token_to_index () 
   {
-    let metadata = Metadata::init("The quick brown fox jumps over the lazy dog.");
+    let metadata = Metadata::init(&"The quick brown fox jumps over the lazy dog.".to_string());
 
     // ["quick", "brown", "fox", "jumps", "lazy", "dog"];
 
@@ -147,7 +147,7 @@ mod tests
   #[test]
   fn test_index_to_token () 
   {
-    let metadata = Metadata::init("The quick brown fox jumps over the lazy dog.");
+    let metadata = Metadata::init(&"The quick brown fox jumps over the lazy dog.".to_string());
 
     // ["quick", "brown", "fox", "jumps", "lazy", "dog"];
 
