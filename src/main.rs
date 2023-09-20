@@ -10,8 +10,8 @@ use std::collections::{BinaryHeap, HashMap};
 use word2vec_rs::*;
 
 pub use crate::metadata::Metadata;
-pub use crate::nn::*;
-pub use crate::sample::SubSampler;
+pub use crate::train::*;
+pub use crate::subsampler::SubSampler;
 
 const EMBEDDINGS_SIZE: usize = 96;
 const DEFAULT_EPOCHS: usize = 65;
@@ -124,7 +124,7 @@ nn_forward_propagation (
 
   let mut results: Vec<(String, f64)> = Vec::new();
   // Generates predictions for the query vector
-  let p_results = forward_propagation(&model, &query_vector);
+  let p_results = model.forward_propagation(&query_vector);
 
   // The probability distribution from the propagation
   let probabilities = p_results.1.row(0);
