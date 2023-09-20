@@ -13,17 +13,19 @@ pub use crate::metadata::Metadata;
 pub use crate::nn::*;
 pub use crate::sample::SubSampler;
 
-const EMBEDDINGS_SIZE: usize = 256;
+const EMBEDDINGS_SIZE: usize = 96;
 const DEFAULT_EPOCHS: usize = 65;
-const WINDOW_SIZE: i32 = 3;
-//const LEARNING_RATE: f64 = 0.001
-const LEARNING_RATE: f64 = 0.0003;
+const WINDOW_SIZE: i32 = 5;
+//const LEARNING_RATE: f64 = 0.001;
+//const LEARNING_RATE: f64 = 0.0004;
+const LEARNING_RATE: f64 = 0.0001;
 
 fn
 run (
   epochs: usize, 
   print_entropy: bool, 
   query: Option<&String>, 
+  analogy: Vec<String>,
   model_path: Option<&String>, 
   save: bool, 
   text: &str
@@ -39,7 +41,7 @@ run (
     _ => model.init_nn_weights_he()
   }
 
-  if (epochs > 0) {
+  if epochs > 0 {
     // Train the model for the given number of epochs
     train_model(&mut model, &metadata, WINDOW_SIZE, epochs, LEARNING_RATE, print_entropy);
   }
@@ -52,28 +54,35 @@ run (
   }
 
   let mut word_embeddings: HashMap<String, Vec<f64>> = HashMap::new();
-  for entry in metadata.token_to_index.iter() {
+  for entry in metadata.token_to_id.iter() {
     word_embeddings.insert(
       entry.0.clone(), 
-      model.extract_embedding(entry.0, &metadata.token_to_index).unwrap()
+      model.extract_embedding(entry.0, &metadata.token_to_id).unwrap()
     );
   }
 
   match query {
     Some(q) => {
-        let nn_results = nn_forward_propagation(q, &model, &metadata.token_to_index, &metadata.index_to_token, metadata.vocab_size);
+        let nn_results = nn_forward_propagation(q, &model, &metadata.token_to_id, &metadata.id_to_token, metadata.vocab_size);
         let e_results = closest_embeddings (q, &word_embeddings);
 
         print_query_results(q, &nn_results, &e_results);
-
-        match word_analogy(q, "oakland", "clara", &word_embeddings) {
-          Some(analogy) => {
-            println!("best word analogy: \"{}\" - \"{}\" + \"{}\" = \"{}\" (similarity {:.5})", q, "oakland", "clara", analogy.0, analogy.1)
-          },
-          _ => println!("could not find an analogy for {}", ""),
-        }
     },
     _ => ()
+  }
+
+  if analogy.len() == 3 {
+    let a = analogy.get(0).unwrap();
+    let b = analogy.get(1).unwrap();
+    let c = analogy.get(2).unwrap();
+
+    match word_analogy(a, b, c, &word_embeddings) {
+      Some(result) => {
+        println!("best word analogy: \"{}\" - \"{}\" + \"{}\" = \"{}\" (similarity {:.5})", 
+          a, b, c, result.0, result.1)
+      },
+      _ => println!("could not find an analogy for {}", ""),
+    }
   }
 }
 
@@ -224,6 +233,7 @@ main ()
   let matches = Command::new("word2vec-rs")
     .version("0.1")
     .about("Simple word2vec implementation")
+    .arg(arg!(--analogy <VALUE>).required(false))
     .arg(arg!(--entropy).required(false))
     .arg(arg!(--input <VALUE>).required(false))
     .arg(arg!(--epochs <VALUE>).required(false))
@@ -232,6 +242,7 @@ main ()
     .arg(arg!(--save).required(false))
     .get_matches();
 
+  let analogy_opt = matches.get_one::<String>("analogy");
   let entropy_opt = matches.get_one::<bool>("entropy");
   let input_opt = matches.get_one::<String>("input");
   let epochs_opt = matches.get_one::<String>("epochs");
@@ -264,5 +275,20 @@ main ()
     _ => &false
   };
 
-  run(epochs, *entropy, predict_opt, load_opt, *save, &text);
+  let mut analogy: Vec<String> = Vec::new();
+  match analogy_opt {
+    Some(a) => {
+      let parts = a.split(",");
+      for iter in parts {
+        analogy.push(iter.to_string());
+      }
+
+      if analogy.len() != 3 {
+        panic!("--analogy requires an argument of three tokens separated by commas; for example, << a,b,c >>")
+      }
+    }
+    _ => ()
+  }
+
+  run(epochs, *entropy, predict_opt, analogy, load_opt, *save, &text);
 }

@@ -132,7 +132,7 @@ train_model (
       {
         let td = build_skip_gram_training_data(
           &metadata.tokens, 
-          &metadata.token_to_index, 
+          &metadata.token_to_id, 
           &sampler, 
           metadata.vocab_size, 
           window_size
@@ -140,6 +140,10 @@ train_model (
 
         // Run backpropagation and possibly record the cross-entropy error from this process
         let ce = back_propagation(model, td, learning_rate);
+
+        if ce.is_nan() {
+          panic!("gradient explosion!");
+        }
 
         if print {
             println!("{:.3}", ce);
@@ -166,12 +170,13 @@ back_propagation (model: &mut Model, training_data: TrainingData, rate: f64) -> 
   // Compute the cross-entropy loss from the forward propagation step
   let ce = cross_entropy(&probabilities, &training_data.y);
 
+  // Compute loss gradient
   let p0 = probabilities.sub(training_data.y);
   let a0 = (a.t()).dot(&p0);
   let p1 = p0.dot(&model.w2.t());
   let a1 = training_data.x.t().dot(&p1);
 
-  // Update the model with new weights
+  // Adjust the model after applying gradient descent values
   model.w1 = model.w1.clone().sub(rate * a1);
   model.w2 = model.w2.clone().sub(rate * a0);
 
@@ -191,7 +196,7 @@ softmax (x: &Array2<f64>) -> Array2<f64>
 }
 
 /// The cross-entropy loss measures the dissimilarity between the predicted probabilities 
-/// (from the softmax) and the true labels. In essence, it calculates how well the 
+/// (from the softmax layer) and the true labels. In essence, it calculates how well the 
 /// predicted probabilities match up with the actual labels (here, identified by Y)
 /// 
 /// The idea is that for the correct class, the model should assign a high probability, 
@@ -200,10 +205,10 @@ softmax (x: &Array2<f64>) -> Array2<f64>
 /// 
 /// https://en.wikipedia.org/wiki/Cross-entropy
 fn 
-cross_entropy (z: &Array2<f64>, y: &Array2<f64>) -> f64 
+cross_entropy (p: &Array2<f64>, q: &Array2<f64>) -> f64 
 {
   let mut ce: f64 = 0.0;
-  for iter in z.iter().zip(y.iter()) {
+  for iter in p.iter().zip(q.iter()) {
     ce += iter.0.log2() * iter.1;
   }
 

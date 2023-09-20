@@ -14,11 +14,10 @@ wikipedia.set_lang('en')
 page = wikipedia.page(args.page)
 content = page.content
 
-
-
 lines = content.split("\n")
 s = ""
 for line in lines:
+	# Strip section headings
 	if not line.startswith('='):
 		line = replace_periods(line)
 		s += line

@@ -2,10 +2,16 @@ use regex::Regex;
 use std::collections::{HashMap, HashSet};
 
 pub struct Metadata {
+  // Extracted vector of individual tokens from input text
   pub tokens: Vec<String>,
-  pub token_to_index: HashMap<String, usize>,
-  pub index_to_token: HashMap<usize, String>,
+  // Maps token to a unique ID; the index of its first occurence
+  pub token_to_id: HashMap<String, usize>,
+  // Maps token IDs back to tokens
+  pub id_to_token: HashMap<usize, String>,
+  // Occurence count of each token in the input text
   pub token_counts: HashMap<String, usize>,
+  // The size of the vocabulary; equals the size of the above 
+  // maps, not the token list
   pub vocab_size: usize
 }
 
@@ -54,8 +60,8 @@ impl Metadata
 
     Metadata { 
       tokens:tokens, 
-      token_to_index: token_to_index, 
-      index_to_token: index_to_token, 
+      token_to_id: token_to_index, 
+      id_to_token: index_to_token, 
       token_counts: token_counts,
       vocab_size: vocab_size
     }
@@ -133,9 +139,9 @@ mod tests
 
     // ["quick", "brown", "fox", "jumps", "lazy", "dog"];
 
-    assert!(metadata.token_to_index.get("quick").unwrap().eq(&0));
-    assert!(metadata.token_to_index.get("lazy").unwrap().eq(&4));
-    assert!(metadata.token_to_index.get("dog").unwrap().eq(&5));
+    assert!(metadata.token_to_id.get("quick").unwrap().eq(&0));
+    assert!(metadata.token_to_id.get("lazy").unwrap().eq(&4));
+    assert!(metadata.token_to_id.get("dog").unwrap().eq(&5));
   }
 
   #[test]
@@ -145,8 +151,8 @@ mod tests
 
     // ["quick", "brown", "fox", "jumps", "lazy", "dog"];
 
-    assert!(metadata.index_to_token.get(&0).unwrap().eq("quick"));
-    assert!(metadata.index_to_token.get(&4).unwrap().eq("lazy"));
-    assert!(metadata.index_to_token.get(&5).unwrap().eq("dog"));
+    assert!(metadata.id_to_token.get(&0).unwrap().eq("quick"));
+    assert!(metadata.id_to_token.get(&4).unwrap().eq("lazy"));
+    assert!(metadata.id_to_token.get(&5).unwrap().eq("dog"));
   }
 }

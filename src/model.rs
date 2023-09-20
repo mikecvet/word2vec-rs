@@ -11,8 +11,11 @@ pub use crate::sample::SubSampler;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Model {
-    pub w1: Array2<f64>,
-    pub w2: Array2<f64>,
+  /// Input embeddings; predicts context words for center word
+  pub w1: Array2<f64>,
+
+  /// Output embeddings; predicts probabilities for every word to be a context word
+  pub w2: Array2<f64>,
 }
 
 pub struct TrainingData {
