@@ -89,7 +89,7 @@ print_query_results (query: &str, nn_results: &Vec<(String, f64)>, e_results: &V
 {  
   let mut i = 0;
 
-  println!("Most similar nearby tokens to [{}] via nn forward propagation:\n", query);
+  println!("Most likely nearby tokens to [{}] via nn forward propagation:\n", query);
   for iter in nn_results.iter() {
     println!("[{}]: {}\t| probability: {:.7}", i, iter.0, iter.1);
     i += 1;
@@ -99,7 +99,7 @@ print_query_results (query: &str, nn_results: &Vec<(String, f64)>, e_results: &V
 
   println!("\nMost similar nearby tokens to [{}] via embeddings cosine similarity:\n", query);
   for iter in e_results.iter() {
-    println!("[{}]: {}\t| probability: {:.7}", i, iter.0, iter.1);
+    println!("[{}]: {}\t| similarity: {:.7}", i, iter.0, iter.1);
     i += 1;
   }
 }

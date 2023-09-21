@@ -1,4 +1,4 @@
-use ndarray::{Array2, Axis};
+use ndarray::Array2;
 use std::collections::HashMap;
 
 pub use crate::args::*;

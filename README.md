@@ -11,31 +11,31 @@ This is mostly a learning project, and actual Rust use-cases for embeddings shou
 
 ```
   ~>> ./target/release/word2vec-rs --input ./corpora/san_francisco.txt --predict gate --load ./model.out --no_train --analogy gate,bridge,golden
-  Most similar nearby tokens to [gate] via nn forward propagation:
+  Most likely nearby tokens to [gate] via nn forward propagation:
 
   [0]: golden     | probability: 0.1078739
-  [1]: gate       | probability: 0.0633199
-  [2]: park       | probability: 0.0241675
-  [3]: bay        | probability: 0.0179222
-  [4]: city       | probability: 0.0140273
-  [5]: north      | probability: 0.0136982
-  [6]: area       | probability: 0.0123178
-  [7]: bridge	    | probability: 0.0097368
-  [8]: county	    | probability: 0.0084362
-  [9]: california | probability: 0.0058315
+  [1]: park       | probability: 0.0241675
+  [2]: bay        | probability: 0.0179222
+  [3]: city       | probability: 0.0140273
+  [4]: north      | probability: 0.0136982
+  [5]: area       | probability: 0.0123178
+  [6]: bridge     | probability: 0.0097368
+  [7]: county     | probability: 0.0084362
+  [8]: california | probability: 0.0058315
+  [9]: mission    | probability: 0.0057265
 
   Most similar nearby tokens to [gate] via embeddings cosine similarity:
 
-  [0]: bridge    | probability: 0.9279431
-  [1]: golden    | probability: 0.9071595
-  [2]: park      | probability: 0.8965557
-  [3]: north     | probability: 0.8283078
-  [4]: protect	 | probability: 0.7988443
-  [5]: national  | probability: 0.7634193
-  [6]: makeshift | probability: 0.7556177
-  [7]: jfk       | probability: 0.7491959
-  [8]: fort      | probability: 0.7381749
-  [9]: tent      | probability: 0.7358739
+  [0]: bridge    | similarity: 0.9279431
+  [1]: golden    | similarity: 0.9071595
+  [2]: park      | similarity: 0.8965557
+  [3]: north     | similarity: 0.8283078
+  [4]: protect	 | similarity: 0.7988443
+  [5]: national  | similarity: 0.7634193
+  [6]: makeshift | similarity: 0.7556177
+  [7]: jfk       | similarity: 0.7491959
+  [8]: fort      | similarity: 0.7381749
+  [9]: tent      | similarity: 0.7358739
 
   Computing analogy for "gate" - "bridge" + "golden" = ?
 

@@ -38,11 +38,15 @@ nn_prediction (
 
   let mut i = 0;
   for iter in indices.iter().zip(sorted_values.iter()) {
-    results.push((index_to_token[iter.0].clone(), *iter.1));
-    i += 1;
+    let w = &index_to_token[iter.0];
 
-    if i >= 10 {
-        break;
+    if !query.eq(w) {
+      results.push((w.clone(), *iter.1));
+      i += 1;
+
+      if i >= 10 {
+          break;
+      }
     }
   }
 
