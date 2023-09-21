@@ -10,7 +10,7 @@ pub use crate::subsampler::SubSampler;
 pub fn
 build_skip_gram_training_data (
   tokens: &Vec<String>,
-  token_to_index: &HashMap<String, usize>,
+  token_to_id: &HashMap<String, usize>,
   sampler: &SubSampler,
   vocabulary_size: usize,
   window: i32,
@@ -73,8 +73,8 @@ build_skip_gram_training_data (
         // This trains the model of the relationship between the token at index(tokens[4]) and the surrounding tokens
         // at index(tokens[2, 3, 5 and 6]).
 
-        let a = encode_to_vector(*token_to_index.get(&(tokens[i as usize])).unwrap(), vocabulary_size);
-        let b = encode_to_vector(*token_to_index.get(&(tokens[j as usize])).unwrap(), vocabulary_size);
+        let a = encode_to_vector(*token_to_id.get(&(tokens[i as usize])).unwrap(), vocabulary_size);
+        let b = encode_to_vector(*token_to_id.get(&(tokens[j as usize])).unwrap(), vocabulary_size);
 
         // Append these encoding vectors to the X and Y vectors, which are currently 
         // lengthy single-dimension vectors to be encoded into 2D matrices later

@@ -11,14 +11,14 @@ pub fn
 nn_prediction (
   query: &str,
   model: &Model, 
-  token_to_index: &HashMap<String, usize>,
-  index_to_token: &HashMap<usize, String>, 
+  token_to_id: &HashMap<String, usize>,
+  id_to_token: &HashMap<usize, String>, 
   vocab_size: usize
 ) -> Vec<(String, f64)> 
 {
   // Encode the query into a one-hot vector
   let query_vector = encode_to_vector(
-    *token_to_index.get(query).unwrap(), 
+    *token_to_id.get(query).unwrap(), 
     vocab_size
   );
 
@@ -33,12 +33,14 @@ nn_prediction (
   // Create a vector of indices which are then sorted in descending order acording to the probability of
   // tokens at that index, when compared to the probabilities vector
   let mut indices: Vec<usize> = (0..probabilities.len()).collect();
+
+  // Sort token ids by their corresponding descending probabilities
   indices.sort_by(|&a, &b| probabilities[b].partial_cmp(&probabilities[a]).unwrap());
   let sorted_values: Vec<f64> = indices.iter().map(|&i| probabilities[i]).collect();
 
   let mut i = 0;
   for iter in indices.iter().zip(sorted_values.iter()) {
-    let w = &index_to_token[iter.0];
+    let w = &id_to_token[iter.0];
 
     if !query.eq(w) {
       results.push((w.clone(), *iter.1));

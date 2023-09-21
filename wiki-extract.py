@@ -2,6 +2,8 @@ import argparse
 import re
 import wikipedia
 
+# run via $ python3 wiki-extract.py -p "San Francisco" > wiki.txt
+
 def replace_periods(input_string):
     # Replace all occurrences of "word1.word2" with "word1 word2", weird wiki formatting
     return re.sub(r'(\w+)\.(\w+)', r'\1 \2', input_string)

@@ -6,6 +6,7 @@ const DEFAULT_EPOCHS: usize = 65;
 const DEFAULT_LEARNING_RATE: f64 = 0.001;
 const DEFAULT_WINDOW_SIZE: i32 = 4;
 
+/// Configuration variables which manage overall model training properties
 pub struct HyperParams {
   pub embeddings_size: usize,
   pub learning_rate: f64,

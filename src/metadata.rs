@@ -19,8 +19,8 @@ impl Metadata
 {
   /// Initializes this Metadata struct. Tokenizes the input text, lowercases it, strips out common stop words, 
   /// and then computes a series of metadata representations:
-  ///  - {'token' -> index} mapping
-  ///  - {index -> 'token'} mapping
+  ///  - {'token' -> id} mapping
+  ///  - {id -> 'token'} mapping
   ///  - {'token' -> count} mapping
   /// And overall vocabulary size, which is equal to the size of the above maps.
   pub fn 
@@ -37,16 +37,16 @@ impl Metadata
     let tokenizer_regex = Regex::new(r"[A-Za-z]+[\w^\']*|[\w^\']*[A-Za-z]+[\w^\']*").unwrap();
     let tokens = tokenize(&tokenizer_regex, text, stop_words);
 
-    let mut token_to_index: HashMap<String, usize> = HashMap::new();
-    let mut index_to_token: HashMap<usize, String> = HashMap::new();
+    let mut token_to_id: HashMap<String, usize> = HashMap::new();
+    let mut id_to_token: HashMap<usize, String> = HashMap::new();
     let mut token_counts: HashMap<String, usize> = HashMap::new();
   
     let mut indx = 0;
   
     for token in tokens.clone() {
-      if !token_to_index.contains_key(&token.clone()) {
-          token_to_index.insert(token.clone(), indx);
-          index_to_token.insert(indx, token.clone());
+      if !token_to_id.contains_key(&token.clone()) {
+          token_to_id.insert(token.clone(), indx);
+          id_to_token.insert(indx, token.clone());
           indx += 1;
       }
   
@@ -56,12 +56,12 @@ impl Metadata
       };
     }
 
-    let vocab_size = token_to_index.len();
+    let vocab_size = token_to_id.len();
 
     Metadata { 
       tokens:tokens, 
-      token_to_id: token_to_index, 
-      id_to_token: index_to_token, 
+      token_to_id, 
+      id_to_token, 
       token_counts: token_counts,
       vocab_size: vocab_size
     }
@@ -133,7 +133,7 @@ mod tests
   }
 
   #[test]
-  fn test_token_to_index () 
+  fn test_token_to_id () 
   {
     let metadata = Metadata::init(&"The quick brown fox jumps over the lazy dog.".to_string());
 
@@ -145,7 +145,7 @@ mod tests
   }
 
   #[test]
-  fn test_index_to_token () 
+  fn test_id_to_token () 
   {
     let metadata = Metadata::init(&"The quick brown fox jumps over the lazy dog.".to_string());
 

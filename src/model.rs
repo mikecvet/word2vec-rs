@@ -153,8 +153,8 @@ impl Model {
   }
 
   /// Returns an embedding vector for the given token string, if it exists. The embedding vector is a row in this 
-  /// model's underlying trained `w1` weights matrix, corresponding to the index associated with the token via the 
-  /// `token_to_index` map.
+  /// model's underlying trained `w1` weights matrix, corresponding to the id associated with the token via the 
+  /// `token_to_id` map.
   /// 
   /// For example, given a `w1` matrix
   /// 
@@ -164,16 +164,16 @@ impl Model {
   ///  [0.3, 0.2, 0.1]
   /// ]
   /// 
-  /// And a `token_to_index` map of 
+  /// And a `token_to_id` map of 
   /// 
   /// {'a' -> 2}
   /// 
   /// This function returns the third row of `w1` corresponding to [0.3, 0.2, 0.1] above.
   /// 
   pub fn 
-  extract_embedding (&self, token: &str, token_to_index: &HashMap<String, usize>) -> Option<Vec<f64>> 
+  extract_embedding (&self, token: &str, token_to_id: &HashMap<String, usize>) -> Option<Vec<f64>> 
   {
-    match token_to_index.get(token) {
+    match token_to_id.get(token) {
       Some(indx) => {
         Some(self.w1.row(*indx).to_owned().into_raw_vec())
       },
