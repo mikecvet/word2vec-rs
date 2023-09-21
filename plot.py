@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Read data from file
-with open('entropy2.out', 'r') as f:
+with open('entropy.out.3', 'r') as f:
     numbers = [float(line.strip()) for line in f.readlines()]
 
 # Set up x-axis values

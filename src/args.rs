@@ -1,6 +1,6 @@
 use std::fs;
 
-const DEFAULT_EMBEDDINGS_SIZE: usize = 96;
+const DEFAULT_EMBEDDINGS_SIZE: usize = 128;
 const DEFAULT_EPOCHS: usize = 65;
 // Useful ranges from [0.001 .. 0.0001]
 const DEFAULT_LEARNING_RATE: f64 = 0.001;
@@ -19,6 +19,7 @@ pub struct Args {
   pub save_model: bool,
   pub predict: Option<String>,
   pub print_entropy: bool,
+  pub train: bool,
   pub text: String,
   pub hyper_params: HyperParams
 }
@@ -78,6 +79,7 @@ impl Args {
     save_model: Option<bool>,
     predict: Option<String>,
     print_entropy: Option<bool>,
+    no_train: Option<bool>,
     embeddings_size_opt: Option<String>,
     learning_rate_opt: Option<String>,
     num_epochs_opt: Option<String>,
@@ -106,6 +108,7 @@ impl Args {
       save_model: save_model.unwrap_or(true), 
       predict: predict, 
       print_entropy: print_entropy.unwrap_or(false),
+      train: !no_train.unwrap_or(false),
       text: text,
       hyper_params: hyper_params
     }

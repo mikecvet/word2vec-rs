@@ -113,7 +113,7 @@ train_model (
       println!("entopy per epoch:");
     }
 
-    // epochs
+    // training loop
     for _ in 0..epochs 
       {
         let td = build_skip_gram_training_data(
