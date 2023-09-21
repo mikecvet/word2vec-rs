@@ -108,16 +108,12 @@ impl Model {
     let std_w2 = (2.0 / self.w2.len() as f64).sqrt();
     let distribution_w2 = Normal::new(0.0, std_w2).expect("Failed to create distribution");
 
-    println!("distriubtion 1 {:?} 2 {:?}", distribution_w1, distribution_w2);
-
     for val in self.w2.iter_mut() {
         *val = rng.sample(distribution_w2);
     }
-
-    println!("initialized He weights: {}\n{}", self.w1, self.w2);
   }
 
-  /// Runs forward propagation against this neural network.
+  /// Runs forward propagation against this neural network. Collects predicted output
   pub fn 
   forward_propagation (&self, x: &Array2<f64>) -> (Array2<f64>, Array2<f64>) 
   {
@@ -127,10 +123,13 @@ impl Model {
     (a1, probabilities)
   }
 
-  /// Runs back propagation aginst this neural network. 
+  /// Runs back propagation aginst this neural network. Compute the gradient of the 
+  /// loss function with respect to the weights and biases. This gradient is then 
+  /// used to update the weights and biases using gradient descent.
   pub fn 
   back_propagation (&mut self, training_data: TrainingData, rate: f64) -> f64 
   {
+    // Run prediction
     let (a, probabilities) = self.forward_propagation(&training_data.x);
 
     // Compute the cross-entropy loss from the forward propagation step
@@ -173,6 +172,7 @@ impl Model {
         Some(self.w1.row(*indx).to_owned().into_raw_vec())
       },
 
+      // The token was not found in the map
       None => None
     }
   }
