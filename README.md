@@ -7,6 +7,8 @@ The `word2vec-rs` binary trains a hidden layer via a basic feedforward neural ne
 
 Provided in this repository is a python script which is useful for parsing and sanitizing Wikipedia articles, which can be used as training data. There's also a script for plotting graphs based on cross-entropy values in file, separated by newlines. Also provided are same example corpora used for testing. 
 
+![Cross-entropy loss visualization from 175 training epochs](https://github.com/mikecvet/word2vec-rs/blob/master/static/entropy.png)
+
 This is mostly a learning project, and actual Rust use-cases for embeddings should use crates like [finalfusion](https://github.com/finalfusion/finalfusion-rust)
 
 ```
