@@ -168,7 +168,7 @@ impl Model {
   /// 
   /// {'a' -> 2}
   /// 
-  /// This function returns the third row of `w1` corresponding to [0.3, 0.2, 0.1] above.
+  /// This function returns an index into the third row of `w1` corresponding to [0.3, 0.2, 0.1] above.
   /// 
   pub fn 
   extract_embedding (&self, token: &str, token_to_id: &HashMap<String, usize>) -> Option<Vec<f64>> 

@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--file', type=str, required=True, help='data file, floats separated by newlines')
 args = parser.parse_args()
 
-# Read data from file
+# Read in newline-seperated data points from file
 with open(args.file, 'r') as f:
     numbers = [float(line.strip()) for line in f.readlines()]
 

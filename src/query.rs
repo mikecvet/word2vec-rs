@@ -16,7 +16,7 @@ nn_prediction (
   vocab_size: usize
 ) -> Vec<(String, f64)> 
 {
-  // Encode the query into a one-hot vector
+  // Encode the query into a sparse one-hot vector
   let query_vector = encode_to_vector(
     *token_to_id.get(query).unwrap(), 
     vocab_size

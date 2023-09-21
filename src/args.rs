@@ -4,6 +4,7 @@ const DEFAULT_EMBEDDINGS_SIZE: usize = 128;
 const DEFAULT_EPOCHS: usize = 65;
 // Useful ranges from [0.001 .. 0.0001]
 const DEFAULT_LEARNING_RATE: f64 = 0.001;
+// Useful ranges from 2..5
 const DEFAULT_WINDOW_SIZE: i32 = 4;
 
 /// Configuration variables which manage overall model training properties

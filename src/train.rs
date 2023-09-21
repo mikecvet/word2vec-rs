@@ -6,7 +6,7 @@ pub use crate::metadata::Metadata;
 pub use crate::model::*;
 pub use crate::subsampler::SubSampler;
 
-/// Builds a set of training matrices based on the skip-graph architecture for word2vec.
+/// Builds a set of training data matrices based on the skip-graph architecture for word2vec
 pub fn
 build_skip_gram_training_data (
   tokens: &Vec<String>,
@@ -127,6 +127,7 @@ train_model (
         // Run backpropagation and possibly record the cross-entropy error from this process
         let ce = model.back_propagation(td, hyper_params.learning_rate);
 
+        // If we've suffered a gradient explosion, end training early
         if ce.is_nan() {
           panic!("gradient explosion!");
         }

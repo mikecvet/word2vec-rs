@@ -19,9 +19,11 @@ impl Metadata
 {
   /// Initializes this Metadata struct. Tokenizes the input text, lowercases it, strips out common stop words, 
   /// and then computes a series of metadata representations:
+  /// 
   ///  - {'token' -> id} mapping
   ///  - {id -> 'token'} mapping
   ///  - {'token' -> count} mapping
+  /// 
   /// And overall vocabulary size, which is equal to the size of the above maps.
   pub fn 
   init (text: &String) -> Self 
@@ -120,12 +122,15 @@ mod tests
     let metadata = Metadata::init(&"The quick brown fox jumps over the lazy, lazy dog.".to_string());
 
     assert!(metadata.vocab_size == 6);
+    assert!(metadata.vocab_size == metadata.token_to_id.len());
   }
 
   #[test]
   fn test_token_counts () 
   {
     let metadata = Metadata::init(&"The quick brown fox jumps over the lazy, lazy dog.".to_string());
+
+    // ["quick", "brown", "fox", "jumps", "lazy", "dog"];
 
     assert!(metadata.token_counts.get("quick").unwrap().eq(&1));
     assert!(metadata.token_counts.get("lazy").unwrap().eq(&2));

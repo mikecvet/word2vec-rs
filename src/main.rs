@@ -83,7 +83,7 @@ init (args: &Args, model: &mut Model, metadata: &Metadata)
   }
 }
 
-/// Pretty-prints query results for --predict and --analogy
+/// Pretty-prints query results for --predict
 fn 
 print_query_results (query: &str, nn_results: &Vec<(String, f64)>, e_results: &Vec<(String, f64)>) 
 {  
