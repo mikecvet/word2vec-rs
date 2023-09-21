@@ -9,7 +9,7 @@ Provided in this repository is a python script which is useful for parsing and s
 
 ![Cross-entropy loss visualization from 175 training epochs](https://github.com/mikecvet/word2vec-rs/blob/master/static/entropy.png)
 
-This is mostly a learning project, and actual Rust use-cases for embeddings should use crates like [finalfusion](https://github.com/finalfusion/finalfusion-rust)
+This implementation is discussed [in this blog post](https://mikecvet.medium.com/word2vec-embeddings-from-the-ground-up-for-the-ml-adjacent-8d8c484e7cb5#f0d8).
 
 ```
   ~>> ./target/release/word2vec-rs --input ./corpora/san_francisco.txt --predict gate --load ./model.out --no_train --analogy gate,bridge,golden
