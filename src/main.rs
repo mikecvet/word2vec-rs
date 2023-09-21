@@ -1,5 +1,4 @@
 use clap::{arg, Command};
-use std::fs;
 use std::collections::{HashMap};
 
 use word2vec_rs::*;

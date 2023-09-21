@@ -160,7 +160,9 @@ impl Model {
   ///  [0.3, 0.2, 0.1]
   /// ]
   /// 
-  /// And a `token_to_index` map of {'a' -> 2}
+  /// And a `token_to_index` map of 
+  /// 
+  /// {'a' -> 2}
   /// 
   /// This function returns the third row of `w1` corresponding to [0.3, 0.2, 0.1] above.
   /// 
