@@ -17,7 +17,7 @@ run (args: &Args)
   let metadata = Metadata::init(&args.text);
   let mut model = Model::new(metadata.vocab_size, args.hyper_params.embeddings_size);
 
-  init (args, &mut model, &metadata);
+  init(args, &mut model, &metadata);
 
   let mut word_embeddings: HashMap<String, Vec<f64>> = HashMap::new();
   for entry in metadata.token_to_id.iter() {

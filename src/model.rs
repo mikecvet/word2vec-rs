@@ -11,6 +11,8 @@ use std::ops::Sub;
 pub use crate::metadata::Metadata;
 pub use crate::subsampler::SubSampler;
 
+/// Simple struct containing model weight vectors; struct implementation below
+/// defines some functionality upon these vectors
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Model {
   /// Input embeddings; predicts context words for center word
@@ -20,6 +22,7 @@ pub struct Model {
   pub w2: Array2<f64>,
 }
 
+/// Simple struct capturing training data vectors.
 pub struct TrainingData {
   pub x: Array2<f64>,
   pub y: Array2<f64>
@@ -68,6 +71,7 @@ cross_entropy (p: &Array2<f64>, q: &Array2<f64>) -> f64
   -ce
 }
 
+/// Implementation for the Model struct. Primarily propagation, embedding, and load/save logic.
 impl Model {
   pub fn 
   new (x: usize, y: usize) -> Self 
