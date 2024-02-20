@@ -118,7 +118,7 @@ train_model (
       {
         let td = build_skip_gram_training_data(
           &metadata.tokens, 
-          &metadata.token_to_id, 
+          &metadata.token_to_id,
           &sampler, 
           metadata.vocab_size, 
           hyper_params.window_size

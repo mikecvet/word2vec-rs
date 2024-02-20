@@ -12,7 +12,8 @@ pub use crate::metadata::Metadata;
 pub use crate::subsampler::SubSampler;
 
 /// Simple struct containing model weight vectors; struct implementation below
-/// defines some functionality upon these vectors
+/// defines some functionality upon these vectors. Conventional Word2Vec doesn't use
+/// biases, so they are not included in this model
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Model {
   /// Input embeddings; predicts context words for center word
@@ -37,6 +38,14 @@ encode_to_vector (indx: usize, n: usize) -> Array2<f64>
   let mut a = Array2::zeros((1, n));
   a[[0, indx]] = 1.0;
   a
+}
+
+/// Rectified Linear Unit calculation. 
+/// Not used in the Word2Vec neural network model
+pub fn 
+relu (x: &Array2<f64>) -> Array2<f64>
+{
+  x.map(|e| if *e > 0.0 { *e } else { 0.0 })
 }
 
 /// The softmax function converts a vector of K real numbers into a probability distribution of 
@@ -117,31 +126,41 @@ impl Model {
     }
   }
 
-  /// Runs forward propagation against this neural network. Collects predicted output
+  /// Runs forward propagation against this neural network
+  /// dL/dA_2 = Z - Y
+  /// A_1 = x⋅w_1
+  /// A_2 = A_1⋅w_2
+  /// z = softmax(a_2)
   pub fn 
   forward_propagation (&self, x: &Array2<f64>) -> (Array2<f64>, Array2<f64>) 
   {
     let a1 = x.dot(&self.w1);
     let a2 = a1.dot(&self.w2);
-    let probabilities = softmax(&a2);
-    (a1, probabilities)
+    let z = softmax(&a2);
+    (a1, z)
   }
 
-  /// Runs back propagation aginst this neural network. Compute the gradient of the 
-  /// loss function with respect to the weights and biases. This gradient is then 
-  /// used to update the weights and biases using gradient descent.
+  /// Runs back propagation aginst this neural network. Computes the gradient of the 
+  /// loss function with respect to the weights. This gradient is then 
+  /// used to update the weights using gradient descent.
+  ///
+  /// dz/dx = sum (i=1..n) (dz/dyi) (dyi/dx)
+  ///
+  /// z = Wx + b (0 in this case)
+  /// h = softmax(z)
+  /// s = u^t h
   pub fn 
   back_propagation (&mut self, training_data: TrainingData, rate: f64) -> f64 
   {
     // Run prediction
-    let (a, probabilities) = self.forward_propagation(&training_data.x);
+    let (a, z) = self.forward_propagation(&training_data.x);
 
     // Compute the cross-entropy loss from the forward propagation step
-    let ce = cross_entropy(&probabilities, &training_data.y);
+    let ce = cross_entropy(&z, &training_data.y);
 
     // Compute loss gradient
-    let p0 = probabilities.sub(training_data.y);
-    let a0 = (a.t()).dot(&p0);
+    let p0 = z.sub(training_data.y);
+    let a0 = (a.t()).dot(&p0); 
     let p1 = p0.dot(&self.w2.t());
     let a1 = training_data.x.t().dot(&p1);
 
@@ -269,6 +288,18 @@ mod tests
 
       assert!(v3[[0, 0]] == 0.0);
       assert!(v3[[0, 64]] == 1.0);
+  }
+
+  #[test]
+  fn test_relu () 
+  {
+      // 8x8 matrix filled with numbers between -10 and 10
+      let matrix = Array2::random((8, 8), Uniform::new(-10.0, 10.0));
+  
+      let y = relu(&matrix);
+      for e in y {
+        assert!(e >= 0.0)
+      }
   }
   
   #[test]
