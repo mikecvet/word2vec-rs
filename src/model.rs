@@ -153,20 +153,20 @@ impl Model {
   back_propagation (&mut self, training_data: TrainingData, rate: f64) -> f64 
   {
     // Run prediction
-    let (a, z) = self.forward_propagation(&training_data.x);
+    let (a1, z) = self.forward_propagation(&training_data.x);
 
     // Compute the cross-entropy loss from the forward propagation step
     let ce = cross_entropy(&z, &training_data.y);
 
     // Compute loss gradient
-    let p0 = z.sub(training_data.y);
-    let a0 = (a.t()).dot(&p0); 
-    let p1 = p0.dot(&self.w2.t());
-    let a1 = training_data.x.t().dot(&p1);
+    let p0 = z.sub(training_data.y); // ∂L/∂W2 = z - y
+    let g2 = (a1.t()).dot(&p0);       
+    let p1 = p0.dot(&self.w2.t());   // ∂L/∂W2 = ∂L/∂z⋅∂z/∂A2⋅∂A2/∂W2
+    let g1 = training_data.x.t().dot(&p1); // ∂L/∂W1 = ∂L/∂z⋅∂z/∂A2⋅∂A2/∂A1⋅∂A1/∂W1
 
     // Adjust the model after applying gradient descent values
-    self.w1 = self.w1.clone().sub(rate * a1);
-    self.w2 = self.w2.clone().sub(rate * a0);
+    self.w1 = self.w1.clone().sub(rate * g1);
+    self.w2 = self.w2.clone().sub(rate * g2);
 
     ce
   }
